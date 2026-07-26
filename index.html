@@ -134,6 +134,13 @@
   .op-mix{background:var(--pink);grid-column:1 / -1;flex-direction:row;justify-content:center;gap:12px;}
   .op-mix .emo{font-size:32px;}
 
+  .op-wrap{display:flex;flex-direction:column;gap:6px;}
+  .table-sel{
+    width:100%;font-family:inherit;font-size:13px;font-weight:600;color:var(--ink-soft);
+    background:#fff;border:none;border-radius:12px;padding:7px 8px;text-align:center;
+    box-shadow:var(--shadow-soft);cursor:pointer;
+  }
+
   .badges{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;background:var(--cream);
     border-radius:24px;padding:16px 14px;box-shadow:var(--shadow-soft);border:4px solid #fff;}
   .badge{display:flex;flex-direction:column;align-items:center;gap:3px;text-align:center;}
@@ -276,10 +283,26 @@
         <span class="emo">🐘</span><span class="nm">Összeadás</span><span class="sym">＋</span></button>
       <button class="op-btn op-sub" onclick="startGame('sub')">
         <span class="emo">🦒</span><span class="nm">Kivonás</span><span class="sym">−</span></button>
-      <button class="op-btn op-mul" onclick="startGame('mul')">
-        <span class="emo">🐆</span><span class="nm">Szorzás</span><span class="sym">×</span></button>
-      <button class="op-btn op-div" onclick="startGame('div')">
-        <span class="emo">🦓</span><span class="nm">Osztás</span><span class="sym">÷</span></button>
+      <div class="op-wrap">
+        <button class="op-btn op-mul" onclick="startGame('mul')">
+          <span class="emo">🐆</span><span class="nm">Szorzás</span><span class="sym">×</span></button>
+        <select class="table-sel" id="tableSelMul" onchange="setTablePref('mul', this.value)" onclick="event.stopPropagation()">
+          <option value="all">Mind</option>
+          <option value="2">2-es</option><option value="3">3-as</option><option value="4">4-es</option>
+          <option value="5">5-ös</option><option value="6">6-os</option><option value="7">7-es</option>
+          <option value="8">8-as</option><option value="9">9-es</option><option value="10">10-es</option>
+        </select>
+      </div>
+      <div class="op-wrap">
+        <button class="op-btn op-div" onclick="startGame('div')">
+          <span class="emo">🦓</span><span class="nm">Osztás</span><span class="sym">÷</span></button>
+        <select class="table-sel" id="tableSelDiv" onchange="setTablePref('div', this.value)" onclick="event.stopPropagation()">
+          <option value="all">Mind</option>
+          <option value="2">2-es</option><option value="3">3-as</option><option value="4">4-es</option>
+          <option value="5">5-ös</option><option value="6">6-os</option><option value="7">7-es</option>
+          <option value="8">8-as</option><option value="9">9-es</option><option value="10">10-es</option>
+        </select>
+      </div>
       <button class="op-btn op-mix" onclick="startGame('mixed')">
         <span class="emo">🐵</span><span class="nm">Vegyes kaland</span></button>
     </div>
@@ -705,8 +728,15 @@ function updatePlayStats(){
   document.getElementById('playPoints').textContent=state.points;
   document.getElementById('playStreak').textContent=state.streak;
 }
+function setTablePref(op, val){
+  state.tablePref[op] = val;
+  save();
+}
+
 function renderHome(){
   document.getElementById('homePoints').textContent=state.points;
+  document.getElementById('tableSelMul').value = state.tablePref.mul;
+  document.getElementById('tableSelDiv').value = state.tablePref.div;
   // folyamatjelző a következő pont-jelvényig
   let next=POINT_GOALS.find(g=>state.points<g);
   const fill=document.getElementById('pbFill'), lab=document.getElementById('pbLabel');
