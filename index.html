@@ -84,6 +84,24 @@
   .profile-go:active{transform:translateY(3px);background:var(--green-dark);box-shadow:0 4px 0 rgba(0,0,0,.12);}
   .profile-err{min-height:20px;margin-top:10px;color:#e0554c;font-weight:600;font-size:14px;}
 
+  .parent-btn{position:absolute;bottom:4px;right:8px;background:transparent;border:none;
+    font-size:15px;opacity:.3;cursor:pointer;padding:6px;}
+  .parent-btn:active{opacity:.6;}
+
+  /* ---------- SZÜLŐI NÉZET ---------- */
+  #parentScreen{display:none;}
+  .parent-card{background:var(--cream);border-radius:22px;padding:14px 16px;margin-bottom:14px;
+    box-shadow:var(--shadow-soft);border:4px solid #fff;}
+  .parent-row{display:flex;justify-content:space-between;align-items:center;padding:5px 2px;font-size:14px;color:var(--ink);}
+  .parent-row b{color:var(--green-dark);}
+  .weak-row{display:flex;justify-content:space-between;font-size:13px;padding:4px 2px;color:var(--ink);}
+  .weak-row b{color:var(--orange-dark);}
+  .week-row{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink-soft);margin:7px 0;}
+  .week-row .wl{width:30px;flex-shrink:0;font-weight:600;}
+  .week-row .wt{flex:1;height:10px;background:#eee4d3;border-radius:10px;overflow:hidden;}
+  .week-row .wf{height:100%;background:linear-gradient(90deg,var(--green),#5fd08a);border-radius:10px;}
+  .week-row .wn{width:38px;text-align:right;flex-shrink:0;font-weight:600;color:var(--ink);}
+
   /* ---------- HOME ---------- */
   .title-card{
     background:var(--cream);border-radius:28px;padding:18px 18px 20px;text-align:center;
@@ -290,6 +308,7 @@
       <h1>Matek Állatkert</h1>
       <p class="lvl">3. osztály · 100-as számkör · szorzótábla</p>
       <p class="who" id="whoPlaying"></p>
+      <button class="parent-btn" onclick="openParentGate()" title="Szülőknek">⚙️</button>
     </div>
 
     <div class="points-bar">
@@ -352,6 +371,44 @@
     <div class="zoo-grid" id="zooGrid"></div>
   </div>
 
+  <!-- ============ SZÜLŐI NÉZET ============ -->
+  <div id="parentScreen">
+    <div class="top">
+      <button class="back" onclick="goHome()">🏠</button>
+      <div class="spacer"></div>
+    </div>
+    <div class="title-card">
+      <h1 style="font-size:22px;">Szülői nézet</h1>
+      <p class="lvl" id="parentWho"></p>
+    </div>
+    <div class="parent-card">
+      <div class="section-h" style="margin-top:0;">📊 Összesen</div>
+      <div class="parent-row"><span>Megoldott feladat</span><b id="pTotalAttempts">0</b></div>
+      <div class="parent-row"><span>Helyes válasz</span><b id="pTotalCorrect">0</b></div>
+      <div class="parent-row"><span>Pontosság</span><b id="pTotalAcc">–</b></div>
+    </div>
+    <div class="parent-card">
+      <div class="section-h" style="margin-top:0;">➗ Műveletenkénti pontosság</div>
+      <div class="parent-row"><span>Összeadás</span><b id="pAccAdd">–</b></div>
+      <div class="parent-row"><span>Kivonás</span><b id="pAccSub">–</b></div>
+      <div class="parent-row"><span>Szorzás</span><b id="pAccMul">–</b></div>
+      <div class="parent-row"><span>Osztás</span><b id="pAccDiv">–</b></div>
+    </div>
+    <div class="parent-card">
+      <div class="section-h" style="margin-top:0;">🎯 Legtöbb gyakorlást igénylő területek</div>
+      <div id="pWeakList"></div>
+    </div>
+    <div class="parent-card">
+      <div class="section-h" style="margin-top:0;">🔥 Napi sorozat</div>
+      <div class="parent-row"><span>Jelenlegi sorozat</span><b id="pStreak">0</b></div>
+      <div class="parent-row"><span>Ma</span><b id="pToday">0</b>/10</div>
+    </div>
+    <div class="parent-card">
+      <div class="section-h" style="margin-top:0;">📅 Elmúlt 7 nap</div>
+      <div id="pWeekList"></div>
+    </div>
+  </div>
+
   <!-- ============ PLAY ============ -->
   <div id="play">
     <div class="top">
@@ -406,6 +463,20 @@
     <div class="mn" id="dailyStreakText">—</div>
     <div class="md">Gyere vissza holnap is, hogy folytasd a sorozatot!</div>
     <button onclick="closeDailyModal()">Szuper! 🎉</button>
+  </div>
+</div>
+
+<div class="modal" id="parentGateModal">
+  <div class="modal-card">
+    <div class="medal">🔒</div>
+    <h2 style="color:var(--ink)">Szülői belépés</h2>
+    <div class="md">Mennyi 7×8?</div>
+    <input id="parentGateInput" class="profile-input" type="number" inputmode="numeric" style="margin-top:2px;">
+    <div class="profile-err" id="parentGateErr"></div>
+    <div style="display:flex;gap:10px;justify-content:center;">
+      <button onclick="closeParentGate()" style="background:#e5d8c4;color:var(--ink);">Mégse</button>
+      <button onclick="checkParentGate()">Belépés</button>
+    </div>
   </div>
 </div>
 
@@ -719,6 +790,7 @@ function startGame(op){
 function goHome(){
   document.getElementById('play').style.display='none';
   document.getElementById('zooScreen').style.display='none';
+  document.getElementById('parentScreen').style.display='none';
   document.getElementById('home').style.display='block';
   window.scrollTo(0,0);
   renderHome();
@@ -740,6 +812,96 @@ function renderZoo(){
     cell.innerHTML = '<div class="animal">'+(on ? b.emoji : '❓')+'</div><div class="zn">'+(on ? b.name : 'Üres kifutó')+'</div>';
     cell.title = on ? (b.name+' — '+b.desc) : ('Szerezd meg: '+b.desc);
     grid.appendChild(cell);
+  }
+}
+
+/* ---------------- Szülői nézet ---------------- */
+function openParentGate(){
+  document.getElementById('parentGateInput').value = '';
+  document.getElementById('parentGateErr').textContent = '';
+  document.getElementById('parentGateModal').classList.add('show');
+}
+function closeParentGate(){
+  document.getElementById('parentGateModal').classList.remove('show');
+}
+function checkParentGate(){
+  const val = parseInt(document.getElementById('parentGateInput').value, 10);
+  if(val === 56){
+    closeParentGate();
+    goParent();
+  } else {
+    document.getElementById('parentGateErr').textContent = 'Nem jó válasz, próbáld újra!';
+  }
+}
+
+function goParent(){
+  document.getElementById('home').style.display='none';
+  document.getElementById('parentScreen').style.display='block';
+  window.scrollTo(0,0);
+  renderParent();
+}
+
+function aggregateAccuracy(keys){
+  let correct=0, attempts=0;
+  for(const k of keys){
+    const s = state.stats[k];
+    if(s){ correct+=s.correct; attempts+=s.attempts; }
+  }
+  return {correct, attempts, pct: attempts>0 ? Math.round(100*correct/attempts) : null};
+}
+function fmtPct(pct){ return pct===null ? '–' : pct+'%'; }
+
+function renderParent(){
+  rolloverDaily();
+  document.getElementById('parentWho').textContent = 'Játékos: ' + (profileName||'');
+
+  const allKeys = Object.keys(state.stats);
+  const overall = aggregateAccuracy(allKeys);
+  document.getElementById('pTotalAttempts').textContent = overall.attempts;
+  document.getElementById('pTotalCorrect').textContent = overall.correct;
+  document.getElementById('pTotalAcc').textContent = fmtPct(overall.pct);
+
+  document.getElementById('pAccAdd').textContent = fmtPct(aggregateAccuracy(['add_nocarry','add_carry']).pct);
+  document.getElementById('pAccSub').textContent = fmtPct(aggregateAccuracy(['sub_nocarry','sub_carry']).pct);
+  document.getElementById('pAccMul').textContent = fmtPct(aggregateAccuracy([2,3,4,5,6,7,8,9,10].map(t=>'mul'+t)).pct);
+  document.getElementById('pAccDiv').textContent = fmtPct(aggregateAccuracy([2,3,4,5,6,7,8,9,10].map(t=>'div'+t)).pct);
+
+  const weak = allKeys
+    .map(k=>({key:k, s:state.stats[k]}))
+    .filter(x=>x.s.attempts>=3)
+    .map(x=>({key:x.key, pct:Math.round(100*x.s.correct/x.s.attempts)}))
+    .sort((a,b)=>a.pct-b.pct)
+    .slice(0,3);
+  const weakList = document.getElementById('pWeakList');
+  weakList.innerHTML = '';
+  if(weak.length===0){
+    weakList.innerHTML = '<div class="weak-row">Még nincs elég adat.</div>';
+  } else {
+    for(const w of weak){
+      const row = document.createElement('div');
+      row.className = 'weak-row';
+      row.innerHTML = '<span>'+CATEGORY_LABELS[w.key]+'</span><b>'+w.pct+'%</b>';
+      weakList.appendChild(row);
+    }
+  }
+
+  document.getElementById('pStreak').textContent = state.daily.streak;
+  document.getElementById('pToday').textContent = Math.min(state.daily.correctToday, DAILY_GOAL);
+
+  const weekListEl = document.getElementById('pWeekList');
+  weekListEl.innerHTML = '';
+  const today = todayStr();
+  const dayNames = ['Va','Hé','Ke','Sze','Csü','Pé','Szo'];
+  for(let i=6;i>=0;i--){
+    const d = addDaysStr(today, -i);
+    const parts = d.split('-').map(Number);
+    const count = state.dailyHistory[d] || 0;
+    const pct = Math.min(100, Math.round(100*count/DAILY_GOAL));
+    const dObj = new Date(parts[0], parts[1]-1, parts[2]);
+    const row = document.createElement('div');
+    row.className = 'week-row';
+    row.innerHTML = '<span class="wl">'+dayNames[dObj.getDay()]+'</span><span class="wt"><span class="wf" style="width:'+pct+'%"></span></span><span class="wn">'+count+'/10</span>';
+    weekListEl.appendChild(row);
   }
 }
 
@@ -997,6 +1159,9 @@ document.addEventListener('keydown',e=>{
 /* ---------------- Indítás ---------------- */
 document.getElementById('profileInput').addEventListener('keydown', e=>{
   if(e.key==='Enter'){ e.preventDefault(); chooseProfile(); }
+});
+document.getElementById('parentGateInput').addEventListener('keydown', e=>{
+  if(e.key==='Enter'){ e.preventDefault(); checkParentGate(); }
 });
 </script>
 </body>
