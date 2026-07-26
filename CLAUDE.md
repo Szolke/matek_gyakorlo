@@ -28,6 +28,15 @@ Sima HTML/CSS/JS, nincs keretrendszer, nincs build lépés, nincs npm/package.js
 - Élő cím: `matek-gyakorlo.pages.dev`
 - KV namespace: `matek-gyakorlo-progress`, binding neve `PROGRESS_KV` (Production és Preview környezethez külön kötve a Cloudflare dashboardon)
 
+## Adatmodell (state, profilonként a KV-ban)
+
+- `stats`: kategóriánkénti `{correct,attempts}` — `add_nocarry`/`add_carry`, `sub_nocarry`/`sub_carry`, `mul2..mul10`, `div2..div10`. Súlyozott feladatválasztás ebből: `weight = 1 + 3*(1-pontosság)`, 3 próbálkozás alatt 0,5 (semleges) pontosságot feltételezünk.
+- `tablePref.{mul,div}`: `'all'` vagy `'2'..'10'` — a menü szorzótábla-választója.
+- `daily`: `{date,correctToday,streak,goalMetToday}` — napi cél 10 helyes válasz, a naptári nap mindig a HELYI időzóna szerint (nem UTC!).
+- `dailyHistory`: `{'YYYY-MM-DD': szám}`, max 14 napra metszve — a szülői nézet 7 napos grafikonjához.
+- Szülői nézet kapukódja: "Mennyi 7×8?" → 56 (`checkParentGate()` az index.html-ben).
+- Új mezők betöltésekor mindig legyen alapérték régi mentésekhez (lásd `mergeStats`, `load()`).
+
 ## Mindig így
 
 - A felület szövege magyar, gyerekbarát, játékos hangnem
