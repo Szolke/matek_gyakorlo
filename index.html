@@ -65,6 +65,25 @@
 
   .wrap{position:relative;z-index:1;max-width:500px;margin:0 auto;padding:16px 16px 40px;}
 
+  /* ---------- PROFIL ---------- */
+  #home{display:none;}
+  .profile-card{
+    background:var(--cream);border-radius:28px;padding:26px 22px;text-align:center;
+    box-shadow:var(--shadow-soft);border:4px solid #fff;margin-top:10px;
+  }
+  .profile-input{
+    width:100%;box-sizing:border-box;font-family:inherit;font-size:22px;font-weight:600;
+    text-align:center;padding:14px 12px;border-radius:18px;border:3px solid #e5d8c4;
+    color:var(--ink);background:#fff;margin-bottom:14px;
+  }
+  .profile-input:focus{outline:none;border-color:var(--green);}
+  .profile-go{
+    border:none;background:var(--green);color:#fff;font-family:inherit;font-weight:700;
+    font-size:19px;padding:14px 30px;border-radius:20px;cursor:pointer;box-shadow:var(--shadow);width:100%;
+  }
+  .profile-go:active{transform:translateY(3px);background:var(--green-dark);box-shadow:0 4px 0 rgba(0,0,0,.12);}
+  .profile-err{min-height:20px;margin-top:10px;color:#e0554c;font-weight:600;font-size:14px;}
+
   /* ---------- HOME ---------- */
   .title-card{
     background:var(--cream);border-radius:28px;padding:18px 18px 20px;text-align:center;
@@ -89,6 +108,12 @@
     border-radius:14px;padding:7px 11px;font-family:inherit;font-weight:600;font-size:13px;color:var(--ink-soft);
     cursor:pointer;box-shadow:var(--shadow-soft);}
   .reset-btn:active{transform:translateY(2px);}
+
+  .profile-btn{position:absolute;top:6px;left:6px;z-index:6;background:#fff;border:3px solid #fff;
+    border-radius:14px;padding:7px 11px;font-family:inherit;font-weight:600;font-size:13px;color:var(--ink-soft);
+    cursor:pointer;box-shadow:var(--shadow-soft);}
+  .profile-btn:active{transform:translateY(2px);}
+  .who{font-size:13px;color:var(--ink-soft);font-weight:500;margin:2px 0 0;}
 
   .section-h{font-size:18px;font-weight:600;margin:4px 4px 10px;color:var(--ink);display:flex;align-items:center;gap:8px;}
 
@@ -211,13 +236,30 @@
 </div>
 
 <div class="wrap">
+  <!-- ============ PROFIL ============ -->
+  <div id="profileScreen">
+    <div class="title-card">
+      <div class="mascot">🦁</div>
+      <h1>Matek Állatkert</h1>
+      <p class="lvl">Ki játszik ma?</p>
+    </div>
+    <div class="profile-card">
+      <input id="profileInput" class="profile-input" type="text" maxlength="20"
+        placeholder="Írd be a neved…" autocomplete="off" autocapitalize="words">
+      <button class="profile-go" onclick="chooseProfile()">Játszom! 🚀</button>
+      <div class="profile-err" id="profileErr"></div>
+    </div>
+  </div>
+
   <!-- ============ HOME ============ -->
   <div id="home">
     <button class="reset-btn" onclick="openReset()">🔄 Új játék</button>
+    <button class="profile-btn" onclick="switchProfile()">👤 Csere</button>
     <div class="title-card">
       <div class="mascot">🦁</div>
       <h1>Matek Állatkert</h1>
       <p class="lvl">3. osztály · 100-as számkör · szorzótábla</p>
+      <p class="who" id="whoPlaying"></p>
     </div>
 
     <div class="points-bar">
@@ -253,6 +295,7 @@
       <div class="stat pts">⭐ <span id="playPoints">0</span></div>
       <div class="stat streak">🔥 <span id="playStreak">0</span></div>
       <div class="spacer"></div>
+      <button class="snd" id="playProfileBtn" onclick="switchProfile()" title="Profilváltás">👤</button>
       <button class="snd" id="sndBtn" onclick="toggleSound()">🔊</button>
     </div>
 
@@ -331,21 +374,81 @@ const POINT_GOALS = [50,150,300,500,750,1000,2000];
 
 const GUIDE = {add:'🐘', sub:'🦒', mul:'🐆', div:'🦓', mixed:'🐵'};
 
-/* ---------------- Mentés (localStorage) ---------------- */
-const SAVE_KEY = 'matek-allatkert';
-function save(){
-  try{ localStorage.setItem(SAVE_KEY, JSON.stringify(state)); }catch(e){}
+/* ---------------- Profil ---------------- */
+const NAME_RE = /^[\p{L}\p{N}]{1,20}$/u;
+let profileName = null; // csak a munkamenet memóriájában él, nincs perzisztálva
+
+function chooseProfile(){
+  const input = document.getElementById('profileInput');
+  const errEl = document.getElementById('profileErr');
+  const name = input.value.trim();
+  if(!NAME_RE.test(name)){
+    errEl.textContent = 'Csak betűt és számot írj, max 20 karakterben! 🙂';
+    return;
+  }
+  errEl.textContent = '';
+  profileName = name;
+  state = JSON.parse(JSON.stringify(DEFAULT));
+  document.getElementById('profileScreen').style.display = 'none';
+  document.getElementById('home').style.display = 'block';
+  document.getElementById('whoPlaying').textContent = 'Játékos: ' + profileName;
+  load().then(renderHome);
 }
-function load(){
+
+function switchProfile(){
+  profileName = null;
+  document.getElementById('play').style.display = 'none';
+  document.getElementById('home').style.display = 'none';
+  document.getElementById('profileScreen').style.display = 'block';
+  const input = document.getElementById('profileInput');
+  input.value = '';
+  document.getElementById('profileErr').textContent = '';
+  input.focus();
+}
+
+/* ---------------- Mentés (Cloudflare KV / Pages Function) ---------------- */
+function apiUrl(){
+  return '/api/progress?profile=' + encodeURIComponent(profileName);
+}
+
+let saveInFlight = false, saveQueued = false, saveRetryTimer = null;
+
+async function save(){
+  if(!profileName) return;
+  if(saveInFlight){ saveQueued = true; return; }
+  saveInFlight = true;
+  const payload = JSON.stringify(state);
   try{
-    const raw = localStorage.getItem(SAVE_KEY);
-    if(raw){
-      const saved = JSON.parse(raw);
+    const res = await fetch(apiUrl(), {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: payload
+    });
+    if(!res.ok) throw new Error('save failed: '+res.status);
+    clearTimeout(saveRetryTimer);
+  }catch(e){
+    // A játék soha nem áll meg emiatt: csendben újrapróbáljuk kicsit később.
+    clearTimeout(saveRetryTimer);
+    saveRetryTimer = setTimeout(save, 3000);
+  }finally{
+    saveInFlight = false;
+    if(saveQueued){ saveQueued = false; save(); }
+  }
+}
+
+async function load(){
+  if(!profileName) return;
+  try{
+    const res = await fetch(apiUrl());
+    if(res.ok){
+      const saved = await res.json();
       state = Object.assign(JSON.parse(JSON.stringify(DEFAULT)), saved);
       state.perOp = Object.assign({add:0,sub:0,mul:0,div:0}, saved.perOp||{});
       state.badges = saved.badges||{};
     }
-  }catch(e){}
+  }catch(e){
+    // Hálózati hiba esetén az alapállapottal indulunk, a játék így is működik.
+  }
 }
 
 /* ---------------- Játék logika ---------------- */
@@ -579,8 +682,9 @@ document.addEventListener('keydown',e=>{
 });
 
 /* ---------------- Indítás ---------------- */
-load();
-renderHome();
+document.getElementById('profileInput').addEventListener('keydown', e=>{
+  if(e.key==='Enter'){ e.preventDefault(); chooseProfile(); }
+});
 </script>
 </body>
 </html>
