@@ -16,6 +16,7 @@ Sima HTML/CSS/JS, nincs keretrendszer, nincs build lépés, nincs npm/package.js
 - `manifest.json`, `icon-180.png`, `icon-512.png` — PWA/kezdőképernyő ikon
 - `functions/api/progress.js` — Pages Function: GET/POST `/api/progress?profile=NÉV`, olvasás/írás a `PROGRESS_KV`-ból
 - `wrangler.toml` — KV namespace binding config (`PROGRESS_KV`); a Cloudflare Pages build ezt is beolvassa, a namespace ID-nak érvényes hex ID-nak kell lennie, placeholder nem működik
+- `_headers` — Cloudflare Pages cache-szabályok: `/`, `/index.html`, `/manifest.json` = `no-cache, must-revalidate` (mindig friss deploy látszódjon, pl. iPados kezdőképernyős PWA-nál is), az ikonokra hosszú cache. Nem vonatkozik a `/api/*` Functions-válaszokra.
 
 ## Parancsok
 
