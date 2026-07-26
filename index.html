@@ -133,6 +133,8 @@
   .op-div{background:var(--purple);}
   .op-mix{background:var(--pink);grid-column:1 / -1;flex-direction:row;justify-content:center;gap:12px;}
   .op-mix .emo{font-size:32px;}
+  .op-words{background:var(--brown);grid-column:1 / -1;flex-direction:row;justify-content:center;gap:12px;}
+  .op-words .emo{font-size:32px;}
 
   .op-wrap{display:flex;flex-direction:column;gap:6px;}
   .table-sel{
@@ -174,6 +176,7 @@
   .problem-card .guide{font-size:44px;line-height:1;margin-bottom:2px;display:inline-block;}
   .problem{font-size:52px;font-weight:700;color:var(--ink);letter-spacing:1px;margin:6px 0 4px;}
   .problem .op-sym{color:var(--orange-dark);margin:0 6px;}
+  .problem.word{font-size:19px;font-weight:600;letter-spacing:normal;line-height:1.4;margin:8px 4px 6px;}
   .answer-box{
     margin:10px auto 0;width:170px;height:64px;background:#fff;border-radius:18px;border:4px dashed #d9c9ad;
     display:flex;align-items:center;justify-content:center;font-size:40px;font-weight:700;color:var(--green-dark);
@@ -305,6 +308,8 @@
       </div>
       <button class="op-btn op-mix" onclick="startGame('mixed')">
         <span class="emo">🐵</span><span class="nm">Vegyes kaland</span></button>
+      <button class="op-btn op-words" onclick="startGame('words')">
+        <span class="emo">📖</span><span class="nm">Állatos történetek</span></button>
     </div>
 
     <div class="section-h">🏅 Jelvényeid</div>
@@ -407,7 +412,43 @@ const BADGES = [
 // pont-alapú jelvények a folyamatjelzőhöz
 const POINT_GOALS = [50,150,300,500,750,1000,2000];
 
-const GUIDE = {add:'🐘', sub:'🦒', mul:'🐆', div:'🦓', mixed:'🐵'};
+const GUIDE = {add:'🐘', sub:'🦒', mul:'🐆', div:'🦓', mixed:'🐵', words:'📖'};
+
+/* ---- Állatos szöveges feladatok ---- */
+const WORD_TEMPLATES = {
+  add: [
+    (a,b)=>`Az oroszlán kifutójában ${a} oroszlán napozott, amikor jött még ${b}. Hány oroszlán van most összesen?`,
+    (a,b)=>`A tóban ${a} kacsa úszkált, és csatlakozott hozzájuk ${b} másik. Hány kacsa van most a tóban?`,
+    (a,b)=>`A majomházban ${a} majom játszott, amikor érkezett még ${b} majom. Hány majom van most ott?`,
+    (a,b)=>`Az etetőben ${a} banán volt, a gondozó odatett még ${b} banánt. Hány banán van most az etetőben?`,
+    (a,b)=>`A zsiráfoknál ${a} zsiráf legelészett, csatlakozott hozzájuk ${b} másik zsiráf. Hány zsiráf van most összesen?`
+  ],
+  sub: [
+    (a,b)=>`A kifutóban ${a} zebra volt, ${b} elment sétálni. Hány zebra maradt a kifutóban?`,
+    (a,b)=>`A medencében ${a} pingvin úszkált, ${b} kimászott pihenni. Hány pingvin maradt a vízben?`,
+    (a,b)=>`A fán ${a} majom ült, ${b} leugrott a földre. Hány majom maradt a fán?`,
+    (a,b)=>`Az etetőben ${a} alma volt, az állatok megettek ${b} almát. Hány alma maradt?`,
+    (a,b)=>`A réten ${a} nyuszi szaladgált, ${b} beugrott az odújába. Hány nyuszi maradt kint?`
+  ],
+  mul: [
+    (a,b)=>`A gondozó ${a} ketrecet rendezett be, mindegyikbe ${b} majmot tett. Hány majom van összesen?`,
+    (a,b)=>`Az udvaron ${a} fészek van, mindegyikben ${b} tojás. Hány tojás van összesen?`,
+    (a,b)=>`Az akváriumban ${a} kis medence van, mindegyikben ${b} hal úszik. Hány hal van összesen?`,
+    (a,b)=>`Az istállóban ${a} box van, mindegyikben ${b} ló áll. Hány ló van összesen?`,
+    (a,b)=>`A jégen ${a} csapat pingvin gyülekezik, csapatonként ${b} pingvin. Hány pingvin van összesen?`
+  ],
+  div: [
+    (a,b)=>`${a} banánt egyenlően szétosztottak ${b} majom között. Hány banán jut egy majomnak?`,
+    (a,b)=>`${a} halat egyenlően elosztottak ${b} pingvin között. Hány hal jut egy pingvinnek?`,
+    (a,b)=>`${a} almát egyenlően szétosztottak ${b} kosárba. Hány alma kerül egy kosárba?`,
+    (a,b)=>`${a} labdát egyenlően elosztottak ${b} majom között játékhoz. Hány labda jut egy majomnak?`,
+    (a,b)=>`${a} virágot egyenlően elültettek ${b} ágyásba. Hány virág jut egy ágyásba?`
+  ]
+};
+function buildWordSentence(op, a, b){
+  const list = WORD_TEMPLATES[op];
+  return list[rnd(0, list.length-1)](a,b);
+}
 
 /* ---------------- Profil ---------------- */
 const NAME_RE = /^[\p{L}\p{N}]{1,20}$/u;
@@ -607,12 +648,24 @@ function goHome(){
 }
 
 function nextProblem(){
-  const tableFilterVal = mode==='mul' ? state.tablePref.mul : mode==='div' ? state.tablePref.div : 'all';
-  current=genProblem(mode, tableFilterVal);
+  const probEl = document.getElementById('problem');
+  if(mode==='words'){
+    const realOp = ['add','sub','mul','div'][rnd(0,3)];
+    const category = pickCategory(realOp, 'all');
+    current = genProblemForCategory(realOp, category);
+    current.sentence = buildWordSentence(realOp, current.a, current.b);
+    document.getElementById('guide').textContent = GUIDE[current.op];
+    probEl.classList.add('word');
+    probEl.textContent = current.sentence;
+  } else {
+    const tableFilterVal = mode==='mul' ? state.tablePref.mul : mode==='div' ? state.tablePref.div : 'all';
+    current=genProblem(mode, tableFilterVal);
+    document.getElementById('guide').textContent=GUIDE[mode];
+    probEl.classList.remove('word');
+    probEl.innerHTML =
+      current.a + ' <span class="op-sym">'+current.sym+'</span> ' + current.b + ' <span class="op-sym">=</span>';
+  }
   typed=''; attempts=0; locked=false;
-  document.getElementById('guide').textContent=GUIDE[mode];
-  document.getElementById('problem').innerHTML =
-    current.a + ' <span class="op-sym">'+current.sym+'</span> ' + current.b + ' <span class="op-sym">=</span>';
   const fb=document.getElementById('feedback'); fb.textContent=''; fb.className='feedback';
   renderAnswer();
 }
