@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Matek Állatkert</title>
+<!-- Kezdőképernyős alkalmazás (iPad / iPhone) -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Matek Állatkert">
+<meta name="theme-color" content="#2fa968">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" href="icon-180.png">
+<link rel="manifest" href="manifest.json">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --sky:#a9def0;
+    --sky-2:#c9ecc0;
+    --grass:#8ed16a;
+    --cream:#fff8ec;
+    --green:#2fa968;
+    --green-dark:#1e8a52;
+    --orange:#ff9e3d;
+    --orange-dark:#f2830f;
+    --brown:#7a5230;
+    --pink:#f06ba0;
+    --purple:#8e6be8;
+    --blue:#3c9fe0;
+    --ink:#40301f;
+    --ink-soft:#7a6a58;
+    --correct:#33b86a;
+    --amber:#f6a623;
+    --shadow:0 8px 0 rgba(0,0,0,.12);
+    --shadow-soft:0 10px 24px rgba(74,52,20,.14);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;height:100%;}
+  body{
+    font-family:'Fredoka',system-ui,-apple-system,'Segoe UI',sans-serif;
+    color:var(--ink);
+    background:linear-gradient(180deg,var(--sky) 0%,var(--sky) 42%,var(--sky-2) 60%,var(--grass) 100%);
+    background-attachment:fixed;
+    min-height:100%;
+    overflow-x:hidden;
+    -webkit-user-select:none;user-select:none;
+  }
+  /* decorative sun + clouds */
+  .sky-deco{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden;}
+  .sun{position:absolute;top:-40px;right:-40px;width:150px;height:150px;border-radius:50%;
+    background:radial-gradient(circle at 50% 50%,#ffe27a,#ffcb3d);box-shadow:0 0 60px rgba(255,203,61,.6);}
+  .cloud{position:absolute;background:#fff;border-radius:50px;opacity:.85;
+    filter:drop-shadow(0 6px 8px rgba(120,150,170,.18));}
+  .cloud::before,.cloud::after{content:"";position:absolute;background:#fff;border-radius:50%;}
+  .c1{width:110px;height:34px;top:70px;left:-30px;animation:drift 46s linear infinite;}
+  .c1::before{width:52px;height:52px;top:-24px;left:18px;}
+  .c1::after{width:38px;height:38px;top:-16px;left:56px;}
+  .c2{width:90px;height:28px;top:150px;left:60%;animation:drift 62s linear infinite;}
+  .c2::before{width:44px;height:44px;top:-20px;left:14px;}
+  .c2::after{width:30px;height:30px;top:-12px;left:46px;}
+  @keyframes drift{from{transform:translateX(-140px);}to{transform:translateX(115vw);}}
+
+  .wrap{position:relative;z-index:1;max-width:500px;margin:0 auto;padding:16px 16px 40px;}
+
+  /* ---------- HOME ---------- */
+  .title-card{
+    background:var(--cream);border-radius:28px;padding:18px 18px 20px;text-align:center;
+    box-shadow:var(--shadow-soft);border:4px solid #fff;margin-bottom:16px;position:relative;
+  }
+  .title-card h1{margin:0;font-size:30px;font-weight:700;letter-spacing:.5px;color:var(--green-dark);line-height:1.05;}
+  .title-card .lvl{margin:6px 0 0;font-size:14px;color:var(--ink-soft);font-weight:500;}
+  .mascot{font-size:56px;line-height:1;display:inline-block;margin-top:6px;animation:bob 3s ease-in-out infinite;}
+  @keyframes bob{0%,100%{transform:translateY(0) rotate(-3deg);}50%{transform:translateY(-8px) rotate(3deg);}}
+
+  .points-bar{
+    display:flex;align-items:center;gap:12px;background:#fff;border-radius:20px;
+    padding:12px 16px;margin-bottom:16px;box-shadow:var(--shadow-soft);border:3px solid #fff;
+  }
+  .points-big{display:flex;align-items:center;gap:8px;font-size:26px;font-weight:700;color:var(--orange-dark);}
+  .points-big .star{font-size:26px;}
+  .pb-track{flex:1;height:16px;background:#eee4d3;border-radius:20px;overflow:hidden;position:relative;}
+  .pb-fill{height:100%;background:linear-gradient(90deg,var(--green),#5fd08a);border-radius:20px;width:0;transition:width .5s ease;}
+  .pb-label{font-size:12px;color:var(--ink-soft);font-weight:500;white-space:nowrap;}
+
+  .reset-btn{position:absolute;top:6px;right:6px;z-index:6;background:#fff;border:3px solid #fff;
+    border-radius:14px;padding:7px 11px;font-family:inherit;font-weight:600;font-size:13px;color:var(--ink-soft);
+    cursor:pointer;box-shadow:var(--shadow-soft);}
+  .reset-btn:active{transform:translateY(2px);}
+
+  .section-h{font-size:18px;font-weight:600;margin:4px 4px 10px;color:var(--ink);display:flex;align-items:center;gap:8px;}
+
+  .ops{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:22px;}
+  .op-btn{
+    border:none;cursor:pointer;border-radius:22px;padding:16px 12px;color:#fff;font-family:inherit;
+    display:flex;flex-direction:column;align-items:center;gap:4px;box-shadow:var(--shadow);
+    transition:transform .08s ease,box-shadow .08s ease;font-weight:600;
+  }
+  .op-btn:active{transform:translateY(4px);box-shadow:0 4px 0 rgba(0,0,0,.12);}
+  .op-btn .emo{font-size:38px;line-height:1;}
+  .op-btn .nm{font-size:17px;}
+  .op-btn .sym{font-size:13px;opacity:.9;font-weight:500;}
+  .op-add{background:var(--green);} .op-add:active{background:var(--green-dark);}
+  .op-sub{background:var(--blue);}
+  .op-mul{background:var(--orange);} .op-mul:active{background:var(--orange-dark);}
+  .op-div{background:var(--purple);}
+  .op-mix{background:var(--pink);grid-column:1 / -1;flex-direction:row;justify-content:center;gap:12px;}
+  .op-mix .emo{font-size:32px;}
+
+  .badges{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;background:var(--cream);
+    border-radius:24px;padding:16px 14px;box-shadow:var(--shadow-soft);border:4px solid #fff;}
+  .badge{display:flex;flex-direction:column;align-items:center;gap:3px;text-align:center;}
+  .badge .disc{width:60px;height:60px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    font-size:32px;background:#eadfce;box-shadow:inset 0 -3px 0 rgba(0,0,0,.08);position:relative;}
+  .badge.on .disc{background:radial-gradient(circle at 50% 35%,#fff2c4,#ffd35a);box-shadow:inset 0 -3px 0 rgba(0,0,0,.08),0 0 0 3px #ffcf5a;}
+  .badge.off .disc{filter:grayscale(1);opacity:.55;}
+  .badge.off .disc::after{content:"?";position:absolute;font-size:22px;color:#a99a84;font-weight:700;}
+  .badge.off .disc span{visibility:hidden;}
+  .badge .bn{font-size:10px;line-height:1.1;color:var(--ink-soft);font-weight:500;min-height:22px;}
+  .badge.on .bn{color:var(--ink);}
+
+  /* ---------- PLAY ---------- */
+  #play{display:none;}
+  .top{display:flex;align-items:center;gap:10px;margin-bottom:14px;}
+  .back{background:#fff;border:3px solid #fff;border-radius:16px;padding:8px 14px;font-family:inherit;
+    font-size:16px;font-weight:600;color:var(--ink);cursor:pointer;box-shadow:var(--shadow-soft);}
+  .back:active{transform:translateY(2px);}
+  .stat{background:#fff;border-radius:16px;padding:8px 12px;font-weight:700;font-size:16px;box-shadow:var(--shadow-soft);
+    display:flex;align-items:center;gap:6px;}
+  .stat.pts{color:var(--orange-dark);}
+  .stat.streak{color:var(--pink);}
+  .top .spacer{flex:1;}
+  .snd{background:#fff;border:none;border-radius:14px;width:44px;height:44px;font-size:20px;cursor:pointer;
+    box-shadow:var(--shadow-soft);}
+
+  .problem-card{
+    background:var(--cream);border-radius:28px;border:5px solid #fff;box-shadow:var(--shadow-soft);
+    padding:22px 18px 20px;text-align:center;margin-bottom:14px;position:relative;overflow:hidden;
+  }
+  .problem-card .guide{font-size:44px;line-height:1;margin-bottom:2px;display:inline-block;}
+  .problem{font-size:52px;font-weight:700;color:var(--ink);letter-spacing:1px;margin:6px 0 4px;}
+  .problem .op-sym{color:var(--orange-dark);margin:0 6px;}
+  .answer-box{
+    margin:10px auto 0;width:170px;height:64px;background:#fff;border-radius:18px;border:4px dashed #d9c9ad;
+    display:flex;align-items:center;justify-content:center;font-size:40px;font-weight:700;color:var(--green-dark);
+  }
+  .answer-box.empty{color:#c9b89c;}
+  .feedback{min-height:26px;margin-top:10px;font-size:18px;font-weight:600;}
+  .feedback.good{color:var(--correct);}
+  .feedback.retry{color:var(--amber);}
+
+  .card-flash-good{animation:flashGood .5s ease;}
+  .card-flash-bad{animation:shake .4s ease;}
+  @keyframes flashGood{0%{background:#d5f6e2;}100%{background:var(--cream);}}
+  @keyframes shake{0%,100%{transform:translateX(0);}20%{transform:translateX(-9px);}40%{transform:translateX(9px);}60%{transform:translateX(-6px);}80%{transform:translateX(6px);}}
+
+  .pad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+  .key{
+    border:none;background:#fff;border-radius:18px;padding:0;height:62px;font-family:inherit;font-size:28px;
+    font-weight:600;color:var(--ink);cursor:pointer;box-shadow:var(--shadow);transition:transform .06s ease;
+  }
+  .key:active{transform:translateY(4px);box-shadow:0 3px 0 rgba(0,0,0,.12);}
+  .key.del{background:#ffe0c2;color:var(--orange-dark);font-size:26px;}
+  .key.go{background:var(--green);color:#fff;font-size:22px;font-weight:700;}
+  .key.go:active{background:var(--green-dark);}
+
+  /* float +points */
+  .floatpts{position:fixed;left:50%;top:40%;transform:translateX(-50%);font-size:40px;font-weight:700;
+    color:var(--orange-dark);pointer-events:none;z-index:50;text-shadow:0 2px 0 #fff;
+    animation:floatUp 1s ease forwards;}
+  @keyframes floatUp{0%{opacity:0;transform:translate(-50%,10px) scale(.6);}
+    25%{opacity:1;transform:translate(-50%,-6px) scale(1.15);}
+    100%{opacity:0;transform:translate(-50%,-80px) scale(1);}}
+
+  /* confetti */
+  #confetti{position:fixed;inset:0;pointer-events:none;z-index:40;overflow:hidden;}
+  .conf{position:absolute;font-size:24px;will-change:transform;animation:fall linear forwards;}
+  @keyframes fall{0%{transform:translateY(-40px) rotate(0);opacity:1;}100%{transform:translateY(105vh) rotate(540deg);opacity:.9;}}
+
+  /* badge popup */
+  .modal{position:fixed;inset:0;background:rgba(40,30,15,.5);z-index:60;display:none;align-items:center;justify-content:center;padding:24px;}
+  .modal.show{display:flex;animation:fadeIn .25s ease;}
+  @keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
+  .modal-card{background:var(--cream);border-radius:28px;border:5px solid #fff;box-shadow:var(--shadow-soft);
+    padding:26px 24px;text-align:center;max-width:320px;animation:pop .4s cubic-bezier(.2,1.5,.4,1);}
+  @keyframes pop{0%{transform:scale(.4);}100%{transform:scale(1);}}
+  .modal-card .medal{font-size:76px;line-height:1;animation:bob 2s ease-in-out infinite;}
+  .modal-card h2{margin:8px 0 4px;color:var(--orange-dark);font-size:24px;}
+  .modal-card .mn{font-size:22px;font-weight:700;color:var(--ink);margin:2px 0;}
+  .modal-card .md{font-size:15px;color:var(--ink-soft);margin:2px 0 16px;}
+  .modal-card button{border:none;background:var(--green);color:#fff;font-family:inherit;font-weight:700;
+    font-size:18px;padding:12px 26px;border-radius:18px;cursor:pointer;box-shadow:var(--shadow);}
+  .modal-card button:active{transform:translateY(3px);background:var(--green-dark);}
+
+  @media (prefers-reduced-motion: reduce){
+    *{animation-duration:.001s !important;animation-iteration-count:1 !important;}
+    .cloud,.mascot,.modal-card .medal{animation:none !important;}
+  }
+  @media (max-width:360px){
+    .problem{font-size:44px;} .title-card h1{font-size:26px;} .badge .disc{width:54px;height:54px;font-size:28px;}
+  }
+</style>
+</head>
+<body>
+<div class="sky-deco">
+  <div class="sun"></div>
+  <div class="cloud c1"></div>
+  <div class="cloud c2"></div>
+</div>
+
+<div class="wrap">
+  <!-- ============ HOME ============ -->
+  <div id="home">
+    <button class="reset-btn" onclick="openReset()">🔄 Új játék</button>
+    <div class="title-card">
+      <div class="mascot">🦁</div>
+      <h1>Matek Állatkert</h1>
+      <p class="lvl">3. osztály · 100-as számkör · szorzótábla</p>
+    </div>
+
+    <div class="points-bar">
+      <div class="points-big"><span class="star">⭐</span><span id="homePoints">0</span></div>
+      <div style="flex:1;">
+        <div class="pb-track"><div class="pb-fill" id="pbFill"></div></div>
+        <div class="pb-label" id="pbLabel">Következő jelvény…</div>
+      </div>
+    </div>
+
+    <div class="section-h">🎯 Mit gyakorolsz ma?</div>
+    <div class="ops">
+      <button class="op-btn op-add" onclick="startGame('add')">
+        <span class="emo">🐘</span><span class="nm">Összeadás</span><span class="sym">＋</span></button>
+      <button class="op-btn op-sub" onclick="startGame('sub')">
+        <span class="emo">🦒</span><span class="nm">Kivonás</span><span class="sym">−</span></button>
+      <button class="op-btn op-mul" onclick="startGame('mul')">
+        <span class="emo">🐆</span><span class="nm">Szorzás</span><span class="sym">×</span></button>
+      <button class="op-btn op-div" onclick="startGame('div')">
+        <span class="emo">🦓</span><span class="nm">Osztás</span><span class="sym">÷</span></button>
+      <button class="op-btn op-mix" onclick="startGame('mixed')">
+        <span class="emo">🐵</span><span class="nm">Vegyes kaland</span></button>
+    </div>
+
+    <div class="section-h">🏅 Jelvényeid</div>
+    <div class="badges" id="badgeGrid"></div>
+  </div>
+
+  <!-- ============ PLAY ============ -->
+  <div id="play">
+    <div class="top">
+      <button class="back" onclick="goHome()">🏠</button>
+      <div class="stat pts">⭐ <span id="playPoints">0</span></div>
+      <div class="stat streak">🔥 <span id="playStreak">0</span></div>
+      <div class="spacer"></div>
+      <button class="snd" id="sndBtn" onclick="toggleSound()">🔊</button>
+    </div>
+
+    <div class="problem-card" id="probCard">
+      <div class="guide" id="guide">🐘</div>
+      <div class="problem" id="problem">2 ＋ 3</div>
+      <div class="answer-box empty" id="answer">?</div>
+      <div class="feedback" id="feedback"></div>
+    </div>
+
+    <div class="pad">
+      <button class="key" onclick="press('1')">1</button>
+      <button class="key" onclick="press('2')">2</button>
+      <button class="key" onclick="press('3')">3</button>
+      <button class="key" onclick="press('4')">4</button>
+      <button class="key" onclick="press('5')">5</button>
+      <button class="key" onclick="press('6')">6</button>
+      <button class="key" onclick="press('7')">7</button>
+      <button class="key" onclick="press('8')">8</button>
+      <button class="key" onclick="press('9')">9</button>
+      <button class="key del" onclick="del()">⌫</button>
+      <button class="key" onclick="press('0')">0</button>
+      <button class="key go" onclick="check()">Kész ✓</button>
+    </div>
+  </div>
+</div>
+
+<div id="confetti"></div>
+
+<div class="modal" id="badgeModal">
+  <div class="modal-card">
+    <div class="medal" id="modalMedal">🏅</div>
+    <h2>Új jelvény!</h2>
+    <div class="mn" id="modalName">—</div>
+    <div class="md" id="modalDesc">—</div>
+    <button onclick="closeBadge()">Szuper! 🎉</button>
+  </div>
+</div>
+
+<div class="modal" id="resetModal">
+  <div class="modal-card">
+    <div class="medal">🔄</div>
+    <h2 style="color:var(--pink)">Új játék?</h2>
+    <div class="md">Minden pont és jelvény törlődik, és minden elölről kezdődik.</div>
+    <div style="display:flex;gap:10px;justify-content:center;">
+      <button onclick="closeReset()" style="background:#e5d8c4;color:var(--ink);">Mégse</button>
+      <button onclick="doReset()" style="background:var(--pink);">Igen, törlöm</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ---------------- Állapot ---------------- */
+const DEFAULT = {points:0, streak:0, bestStreak:0, totalCorrect:0,
+  perOp:{add:0,sub:0,mul:0,div:0}, badges:{}, sound:true};
+let state = JSON.parse(JSON.stringify(DEFAULT));
+
+const BADGES = [
+  {id:'start',   emoji:'🐣', name:'Első lépés',        desc:'Az első jó válasz',       ok:s=>s.totalCorrect>=1},
+  {id:'turtle',  emoji:'🐢', name:'Teknős',            desc:'50 pont',                 ok:s=>s.points>=50},
+  {id:'bunny',   emoji:'🐰', name:'Nyuszi',            desc:'150 pont',                ok:s=>s.points>=150},
+  {id:'koala',   emoji:'🐨', name:'Kitartó koala',     desc:'5 jó egymás után',        ok:s=>s.bestStreak>=5},
+  {id:'fox',     emoji:'🦊', name:'Ügyes róka',        desc:'300 pont',                ok:s=>s.points>=300},
+  {id:'add25',   emoji:'🐘', name:'Összeadó elefánt',  desc:'25 jó összeadás',         ok:s=>s.perOp.add>=25},
+  {id:'sub25',   emoji:'🦒', name:'Kivonó zsiráf',     desc:'25 jó kivonás',           ok:s=>s.perOp.sub>=25},
+  {id:'penguin', emoji:'🐧', name:'Pingvin',           desc:'500 pont',                ok:s=>s.points>=500},
+  {id:'mul25',   emoji:'🐆', name:'Szorzó gepárd',     desc:'25 jó szorzás',           ok:s=>s.perOp.mul>=25},
+  {id:'div25',   emoji:'🦓', name:'Osztó zebra',       desc:'25 jó osztás',            ok:s=>s.perOp.div>=25},
+  {id:'streak10',emoji:'🦩', name:'Sorozat-flamingó',  desc:'10 jó egymás után',       ok:s=>s.bestStreak>=10},
+  {id:'lion',    emoji:'🦁', name:'Bátor oroszlán',    desc:'750 pont',                ok:s=>s.points>=750},
+  {id:'panda',   emoji:'🐼', name:'Panda profi',       desc:'1000 pont',               ok:s=>s.points>=1000},
+  {id:'unicorn', emoji:'🦄', name:'Matek-varázsló',    desc:'2000 pont',               ok:s=>s.points>=2000},
+];
+// pont-alapú jelvények a folyamatjelzőhöz
+const POINT_GOALS = [50,150,300,500,750,1000,2000];
+
+const GUIDE = {add:'🐘', sub:'🦒', mul:'🐆', div:'🦓', mixed:'🐵'};
+
+/* ---------------- Mentés (localStorage) ---------------- */
+const SAVE_KEY = 'matek-allatkert';
+function save(){
+  try{ localStorage.setItem(SAVE_KEY, JSON.stringify(state)); }catch(e){}
+}
+function load(){
+  try{
+    const raw = localStorage.getItem(SAVE_KEY);
+    if(raw){
+      const saved = JSON.parse(raw);
+      state = Object.assign(JSON.parse(JSON.stringify(DEFAULT)), saved);
+      state.perOp = Object.assign({add:0,sub:0,mul:0,div:0}, saved.perOp||{});
+      state.badges = saved.badges||{};
+    }
+  }catch(e){}
+}
+
+/* ---------------- Játék logika ---------------- */
+let current=null, typed='', attempts=0, locked=false, mode='add';
+
+function rnd(min,max){return Math.floor(Math.random()*(max-min+1))+min;}
+
+function genProblem(op){
+  if(op==='mixed') op=['add','sub','mul','div'][rnd(0,3)];
+  let a,b,ans,sym;
+  if(op==='add'){ a=rnd(2,89); b=rnd(2,100-a); ans=a+b; sym='＋'; }
+  else if(op==='sub'){ a=rnd(5,100); b=rnd(1,a-1); ans=a-b; sym='−'; }
+  else if(op==='mul'){ a=rnd(2,10); b=rnd(2,10); ans=a*b; sym='×'; }
+  else { b=rnd(2,10); ans=rnd(2,10); a=b*ans; sym='÷'; }
+  return {op,a,b,ans,sym};
+}
+
+function startGame(op){
+  mode=op;
+  document.getElementById('home').style.display='none';
+  document.getElementById('play').style.display='block';
+  window.scrollTo(0,0);
+  updatePlayStats();
+  document.getElementById('sndBtn').textContent = state.sound ? '🔊' : '🔇';
+  nextProblem();
+}
+function goHome(){
+  document.getElementById('play').style.display='none';
+  document.getElementById('home').style.display='block';
+  window.scrollTo(0,0);
+  renderHome();
+}
+
+function nextProblem(){
+  current=genProblem(mode);
+  typed=''; attempts=0; locked=false;
+  document.getElementById('guide').textContent=GUIDE[mode];
+  document.getElementById('problem').innerHTML =
+    current.a + ' <span class="op-sym">'+current.sym+'</span> ' + current.b + ' <span class="op-sym">=</span>';
+  const fb=document.getElementById('feedback'); fb.textContent=''; fb.className='feedback';
+  renderAnswer();
+}
+
+function renderAnswer(){
+  const el=document.getElementById('answer');
+  if(typed===''){ el.textContent='?'; el.classList.add('empty'); }
+  else { el.textContent=typed; el.classList.remove('empty'); }
+}
+function press(d){ if(locked) return; if(typed.length>=3) return; if(typed==='0') typed=''; typed+=d; renderAnswer(); }
+function del(){ if(locked) return; typed=typed.slice(0,-1); renderAnswer(); }
+
+function check(){
+  if(locked || current===null) return;
+  if(typed===''){ flashFeedback('Írj be egy számot! 🔢','retry'); return; }
+  const val=parseInt(typed,10);
+  if(val===current.ans){ correct(); }
+  else { wrong(); }
+}
+
+function correct(){
+  locked=true;
+  state.totalCorrect++;
+  state.streak++;
+  if(state.streak>state.bestStreak) state.bestStreak=state.streak;
+  if(current.op in state.perOp) state.perOp[current.op]++;
+  let gain=10; if(state.streak>0 && state.streak%5===0) gain+=10; // sorozat bónusz
+  state.points+=gain;
+
+  const praise=['Szuper! 🎉','Nagyszerű! 🌟','Ügyes vagy! 👏','Bravó! 🥳','Kiváló! 💫','Zseniális! ✨'];
+  flashFeedback(praise[rnd(0,praise.length-1)],'good');
+  document.getElementById('probCard').classList.remove('card-flash-good');
+  void document.getElementById('probCard').offsetWidth;
+  document.getElementById('probCard').classList.add('card-flash-good');
+  floatPoints('+'+gain);
+  confetti();
+  beep('good');
+  updatePlayStats();
+
+  const newBadges=checkBadges();
+  save();
+  setTimeout(()=>{
+    if(newBadges.length){ showBadge(newBadges[0]); }
+    else { nextProblem(); }
+  }, 1000);
+}
+
+function wrong(){
+  attempts++;
+  state.streak=0;
+  updatePlayStats();
+  beep('bad');
+  const card=document.getElementById('probCard');
+  card.classList.remove('card-flash-bad'); void card.offsetWidth; card.classList.add('card-flash-bad');
+  if(attempts>=2){
+    locked=true;
+    flashFeedback('A helyes válasz: '+current.ans+' 🌈','retry');
+    save();
+    setTimeout(nextProblem,1900);
+  } else {
+    flashFeedback('Nem baj, próbáld újra! 💪','retry');
+    typed=''; renderAnswer();
+  }
+}
+
+function flashFeedback(msg,type){
+  const fb=document.getElementById('feedback');
+  fb.textContent=msg; fb.className='feedback '+(type||'');
+}
+
+/* ---------------- Jelvények ---------------- */
+function checkBadges(){
+  const earned=[];
+  for(const b of BADGES){
+    if(!state.badges[b.id] && b.ok(state)){ state.badges[b.id]=true; earned.push(b); }
+  }
+  return earned;
+}
+function showBadge(b){
+  document.getElementById('modalMedal').textContent=b.emoji;
+  document.getElementById('modalName').textContent=b.name;
+  document.getElementById('modalDesc').textContent=b.desc;
+  document.getElementById('badgeModal').classList.add('show');
+  confetti(true);
+  beep('badge');
+}
+function closeBadge(){
+  document.getElementById('badgeModal').classList.remove('show');
+  nextProblem();
+}
+
+/* ---------------- Új játék (nullázás) ---------------- */
+function openReset(){ document.getElementById('resetModal').classList.add('show'); }
+function closeReset(){ document.getElementById('resetModal').classList.remove('show'); }
+function doReset(){
+  const snd = state.sound;
+  state = JSON.parse(JSON.stringify(DEFAULT));
+  state.sound = snd;
+  save();
+  renderHome();
+  closeReset();
+}
+
+/* ---------------- Kijelzők ---------------- */
+function updatePlayStats(){
+  document.getElementById('playPoints').textContent=state.points;
+  document.getElementById('playStreak').textContent=state.streak;
+}
+function renderHome(){
+  document.getElementById('homePoints').textContent=state.points;
+  // folyamatjelző a következő pont-jelvényig
+  let next=POINT_GOALS.find(g=>state.points<g);
+  const fill=document.getElementById('pbFill'), lab=document.getElementById('pbLabel');
+  if(next){
+    const prev=[0,...POINT_GOALS].filter(g=>g<=state.points).pop()||0;
+    const pct=Math.round(((state.points-prev)/(next-prev))*100);
+    fill.style.width=Math.max(4,pct)+'%';
+    lab.textContent='Még '+(next-state.points)+' pont a következő jelvényig!';
+  } else {
+    fill.style.width='100%';
+    lab.textContent='Minden pont-jelvény megvan! 🌟';
+  }
+  // jelvény rács
+  const grid=document.getElementById('badgeGrid'); grid.innerHTML='';
+  for(const b of BADGES){
+    const on=!!state.badges[b.id];
+    const d=document.createElement('div');
+    d.className='badge '+(on?'on':'off');
+    d.innerHTML='<div class="disc"><span>'+b.emoji+'</span></div><div class="bn">'+(on?b.name:'')+'</div>';
+    d.title=b.name+' — '+b.desc;
+    grid.appendChild(d);
+  }
+}
+
+/* ---------------- Effektek ---------------- */
+function floatPoints(txt){
+  const el=document.createElement('div'); el.className='floatpts'; el.textContent=txt;
+  document.body.appendChild(el); setTimeout(()=>el.remove(),1000);
+}
+const CONF=['🎉','⭐','🌟','🍎','🎈','🦋','🌈','🍀'];
+function confetti(big){
+  if(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const box=document.getElementById('confetti');
+  const n=big?26:16;
+  for(let i=0;i<n;i++){
+    const s=document.createElement('div'); s.className='conf';
+    s.textContent=CONF[rnd(0,CONF.length-1)];
+    s.style.left=rnd(2,96)+'vw';
+    s.style.fontSize=rnd(18,30)+'px';
+    const dur=rnd(180,320)/100;
+    s.style.animationDuration=dur+'s';
+    s.style.animationDelay=(rnd(0,40)/100)+'s';
+    box.appendChild(s);
+    setTimeout(()=>s.remove(),(dur+0.5)*1000);
+  }
+}
+
+/* ---------------- Hang ---------------- */
+let actx=null;
+function ensureAudio(){ if(!actx){ try{ actx=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } }
+function tone(freq,start,dur,vol){
+  if(!actx) return;
+  const o=actx.createOscillator(), g=actx.createGain();
+  o.type='sine'; o.frequency.value=freq;
+  o.connect(g); g.connect(actx.destination);
+  const t=actx.currentTime+start;
+  g.gain.setValueAtTime(0.0001,t);
+  g.gain.exponentialRampToValueAtTime(vol||0.18,t+0.02);
+  g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+  o.start(t); o.stop(t+dur+0.02);
+}
+function beep(kind){
+  if(!state.sound) return; ensureAudio(); if(!actx) return;
+  if(actx.state==='suspended') actx.resume();
+  if(kind==='good'){ tone(660,0,.12); tone(880,.1,.16); }
+  else if(kind==='bad'){ tone(300,0,.18,.14); }
+  else if(kind==='badge'){ tone(660,0,.12); tone(880,.1,.12); tone(1180,.22,.22); }
+}
+function toggleSound(){
+  state.sound=!state.sound;
+  document.getElementById('sndBtn').textContent=state.sound?'🔊':'🔇';
+  if(state.sound){ ensureAudio(); beep('good'); }
+  save();
+}
+
+/* ---------------- Billentyűzet (gépen) ---------------- */
+document.addEventListener('keydown',e=>{
+  if(document.getElementById('play').style.display==='none') return;
+  if(e.key>='0'&&e.key<='9') press(e.key);
+  else if(e.key==='Backspace'){ e.preventDefault(); del(); }
+  else if(e.key==='Enter'){ e.preventDefault(); check(); }
+});
+
+/* ---------------- Indítás ---------------- */
+load();
+renderHome();
+</script>
+</body>
+</html>

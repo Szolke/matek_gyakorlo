@@ -1,0 +1,16 @@
+{
+  "name": "Matek Állatkert",
+  "short_name": "Matek Állatkert",
+  "description": "Matematika gyakorló 3. osztályosoknak – állatkert témában.",
+  "lang": "hu",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#a9def0",
+  "theme_color": "#2fa968",
+  "icons": [
+    { "src": "icon-180.png", "sizes": "180x180", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}
