@@ -41,7 +41,9 @@ Sima HTML/CSS/JS, nincs keretrendszer, nincs build lépés, nincs npm/package.js
 
 ## Matek-kirakó (matek-keresztrejtvény mód)
 
-3x3 számrács (5x5 megjelenítő rács fix +/− és = jelekkel): minden SOR ugyanazt a műveletet használja, minden OSZLOP egy másikat (`a opRow b = c`, ..., `a opCol d = g`, ...). Ha `opRow`/`opCol` csak `+`/`−`, a rács **algebrailag mindig konzisztens** bármilyen kezdőszámból — ezért a generálás (`generatePuzzle()` az index.html-ben) egyszerű elutasításos mintavétel, nincs visszalépéses keresés. A × **szándékosan nincs** ebben a rácsban (a garancia rá nem áll, lásd kód-kommentár `tryBuildSolvedGrid()` fölött) — a nehézséget az üres cellák száma (3/5/7), számnagyság és elterelő számok adják (`PUZZLE_LEVELS`). Ha ezt a döntést felül akarod írni, előbb olvasd el a kód-kommentárt.
+**v2 (jelenlegi):** szabálytalan, elágazó egyenlet-fa. Sok kis háromtagú egyenlet (`a op b = c`, `+/−/×/÷`) kapcsolódik közös cellákon, vízszintes/függőleges "karokkal" (`buildEquationTree()` az index.html-ben). A szerkezet mindig **körmentes (fa)**: minden új egyenlet pontosan EGY meglévő cellán csatlakozik, a másik két cellája szabad — ezért a feltöltés tisztán konstruktív (a közös cella értéke már ismert, csak a másik két számot/a műveletet kell megválasztani, lásd `tryConstructEquation()`), nincs globális visszalépés, csak egy mindig működő +/− tartalék (`tryAttachUniversalFallback()`). Emiatt fér bele a × és ÷ is — a v1-es szabályos 3×3 rácsnál (lásd lentebb) ez nem ment volna megbízhatóan. `PUZZLE_LEVELS.maxSpan` egy "puha" méretkorlát (9/11/13 cella), hogy a forma jellemzően kompakt maradjon iPadon; ritka, nagyon elágazó esetben a rács vízszintesen görgethető.
+
+**v1 (lecserélve, csak történeti jegyzetként):** szabályos 3×3 rács volt, ahol minden SOR egy közös műveletet, minden OSZLOP egy másikat használt. Ott a × azért nem fért bele: a "sarok" cellának két irányból (sor és oszlop felől is) pontosan ugyanazt kellett volna adnia, ami ×-nél csak elvétve jött volna ki a 100-as korláton belül. Ha valaha vissza kellene állítani, ez a korlátozás ugyanúgy fennáll.
 
 ## Mindig így
 
