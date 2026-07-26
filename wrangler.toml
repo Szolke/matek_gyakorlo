@@ -2,9 +2,6 @@ name = "matek-gyakorlo"
 compatibility_date = "2026-07-01"
 pages_build_output_dir = "."
 
-# Helyi teszteléshez (wrangler pages dev) ez az ID lényegtelen —
-# a helyi KV-t szimulálja. Éles/preview környezetben a Cloudflare
-# dashboardon manuálisan bekötött namespace számít (lásd README/lépések).
 [[kv_namespaces]]
 binding = "PROGRESS_KV"
-id = "ide-jon-a-kv-namespace-id-helyi-teszthez-barmi-lehet"
+id = "ee6632726a1742d4984828b3d915cb9d"
