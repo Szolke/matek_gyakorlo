@@ -349,8 +349,20 @@
 
 <script>
 /* ---------------- Állapot ---------------- */
+function buildDefaultStats(){
+  const s = {
+    add_nocarry:{correct:0,attempts:0}, add_carry:{correct:0,attempts:0},
+    sub_nocarry:{correct:0,attempts:0}, sub_carry:{correct:0,attempts:0}
+  };
+  for(let t=2;t<=10;t++){ s['mul'+t]={correct:0,attempts:0}; s['div'+t]={correct:0,attempts:0}; }
+  return s;
+}
 const DEFAULT = {points:0, streak:0, bestStreak:0, totalCorrect:0,
-  perOp:{add:0,sub:0,mul:0,div:0}, badges:{}, sound:true};
+  perOp:{add:0,sub:0,mul:0,div:0}, badges:{}, sound:true,
+  stats: buildDefaultStats(),
+  tablePref:{mul:'all', div:'all'},
+  daily:{date:'', correctToday:0, streak:0, goalMetToday:false},
+  dailyHistory:{}};
 let state = JSON.parse(JSON.stringify(DEFAULT));
 
 const BADGES = [
@@ -436,6 +448,19 @@ async function save(){
   }
 }
 
+function mergeStats(saved){
+  const base = buildDefaultStats();
+  if(saved && typeof saved==='object'){
+    for(const key in base){
+      const s = saved[key];
+      if(s && typeof s.correct==='number' && typeof s.attempts==='number'){
+        base[key] = {correct:s.correct, attempts:s.attempts};
+      }
+    }
+  }
+  return base;
+}
+
 async function load(){
   if(!profileName) return;
   try{
@@ -445,6 +470,10 @@ async function load(){
       state = Object.assign(JSON.parse(JSON.stringify(DEFAULT)), saved);
       state.perOp = Object.assign({add:0,sub:0,mul:0,div:0}, saved.perOp||{});
       state.badges = saved.badges||{};
+      state.stats = mergeStats(saved.stats);
+      state.tablePref = Object.assign({mul:'all',div:'all'}, saved.tablePref||{});
+      state.daily = Object.assign({date:'',correctToday:0,streak:0,goalMetToday:false}, saved.daily||{});
+      state.dailyHistory = (saved.dailyHistory && typeof saved.dailyHistory==='object') ? saved.dailyHistory : {};
     }
   }catch(e){
     // Hálózati hiba esetén az alapállapottal indulunk, a játék így is működik.
@@ -456,14 +485,86 @@ let current=null, typed='', attempts=0, locked=false, mode='add';
 
 function rnd(min,max){return Math.floor(Math.random()*(max-min+1))+min;}
 
-function genProblem(op){
-  if(op==='mixed') op=['add','sub','mul','div'][rnd(0,3)];
-  let a,b,ans,sym;
-  if(op==='add'){ a=rnd(2,89); b=rnd(2,100-a); ans=a+b; sym='＋'; }
-  else if(op==='sub'){ a=rnd(5,100); b=rnd(1,a-1); ans=a-b; sym='−'; }
-  else if(op==='mul'){ a=rnd(2,10); b=rnd(2,10); ans=a*b; sym='×'; }
-  else { b=rnd(2,10); ans=rnd(2,10); a=b*ans; sym='÷'; }
-  return {op,a,b,ans,sym};
+/* ---- Kategóriák és súlyozott feladatválasztás ---- */
+const TABLE_SUFFIX = {2:'2-es',3:'3-as',4:'4-es',5:'5-ös',6:'6-os',7:'7-es',8:'8-as',9:'9-es',10:'10-es'};
+const CATEGORY_LABELS = (function(){
+  const m = {
+    add_nocarry:'Összeadás (átlépés nélkül)', add_carry:'Összeadás (tízesátlépéssel)',
+    sub_nocarry:'Kivonás (átlépés nélkül)',  sub_carry:'Kivonás (tízesátlépéssel)'
+  };
+  for(let t=2;t<=10;t++){ m['mul'+t]=TABLE_SUFFIX[t]+' szorzótábla'; m['div'+t]=TABLE_SUFFIX[t]+' osztótábla'; }
+  return m;
+})();
+
+function categoryWeight(catKey){
+  const s = (state.stats && state.stats[catKey]) || {correct:0, attempts:0};
+  const acc = s.attempts < 3 ? 0.5 : s.correct / s.attempts;
+  return 1 + 3 * (1 - acc);
+}
+function weightedPick(keys){
+  const weights = keys.map(categoryWeight);
+  const total = weights.reduce((a,b)=>a+b, 0);
+  let r = Math.random() * total;
+  for(let i=0;i<keys.length;i++){
+    r -= weights[i];
+    if(r<=0) return keys[i];
+  }
+  return keys[keys.length-1];
+}
+function pickCategory(op, tableFilterVal){
+  if(op==='add') return weightedPick(['add_nocarry','add_carry']);
+  if(op==='sub') return weightedPick(['sub_nocarry','sub_carry']);
+  if(op==='mul'){
+    if(tableFilterVal && tableFilterVal!=='all') return 'mul'+tableFilterVal;
+    return weightedPick([2,3,4,5,6,7,8,9,10].map(t=>'mul'+t));
+  }
+  if(op==='div'){
+    if(tableFilterVal && tableFilterVal!=='all') return 'div'+tableFilterVal;
+    return weightedPick([2,3,4,5,6,7,8,9,10].map(t=>'div'+t));
+  }
+}
+
+function genProblemForCategory(op, category){
+  let a,b,ans,sym,table;
+  if(op==='add'){
+    sym='＋';
+    const wantCarry = category==='add_carry';
+    for(let tries=0; tries<300; tries++){
+      a=rnd(2,89); b=rnd(2,100-a);
+      if(((a%10+b%10)>=10)===wantCarry) break;
+    }
+    ans=a+b;
+    return {op,a,b,ans,sym,category};
+  }
+  if(op==='sub'){
+    sym='−';
+    const wantBorrow = category==='sub_carry';
+    for(let tries=0; tries<300; tries++){
+      a=rnd(5,100); b=rnd(1,a-1);
+      if(((a%10)<(b%10))===wantBorrow) break;
+    }
+    ans=a-b;
+    return {op,a,b,ans,sym,category};
+  }
+  if(op==='mul'){
+    sym='×';
+    table = parseInt(category.slice(3),10);
+    a=table; b=rnd(2,10);
+    if(rnd(0,1)===1){ const t=a; a=b; b=t; }
+    ans=a*b;
+    return {op,a,b,ans,sym,category,table};
+  }
+  // div
+  sym='÷';
+  table = parseInt(category.slice(3),10);
+  b=table; ans=rnd(2,10); a=b*ans;
+  return {op,a,b,ans,sym,category,table};
+}
+
+function genProblem(op, tableFilterVal){
+  const realOp = (op==='mixed') ? ['add','sub','mul','div'][rnd(0,3)] : op;
+  const category = pickCategory(realOp, tableFilterVal);
+  return genProblemForCategory(realOp, category);
 }
 
 function startGame(op){
@@ -483,7 +584,8 @@ function goHome(){
 }
 
 function nextProblem(){
-  current=genProblem(mode);
+  const tableFilterVal = mode==='mul' ? state.tablePref.mul : mode==='div' ? state.tablePref.div : 'all';
+  current=genProblem(mode, tableFilterVal);
   typed=''; attempts=0; locked=false;
   document.getElementById('guide').textContent=GUIDE[mode];
   document.getElementById('problem').innerHTML =
@@ -514,6 +616,10 @@ function correct(){
   state.streak++;
   if(state.streak>state.bestStreak) state.bestStreak=state.streak;
   if(current.op in state.perOp) state.perOp[current.op]++;
+  if(current.category && state.stats[current.category]){
+    state.stats[current.category].attempts++;
+    state.stats[current.category].correct++;
+  }
   let gain=10; if(state.streak>0 && state.streak%5===0) gain+=10; // sorozat bónusz
   state.points+=gain;
 
@@ -544,6 +650,9 @@ function wrong(){
   card.classList.remove('card-flash-bad'); void card.offsetWidth; card.classList.add('card-flash-bad');
   if(attempts>=2){
     locked=true;
+    if(current.category && state.stats[current.category]){
+      state.stats[current.category].attempts++;
+    }
     flashFeedback('A helyes válasz: '+current.ans+' 🌈','retry');
     save();
     setTimeout(nextProblem,1900);
