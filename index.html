@@ -204,9 +204,10 @@
   /* ---------- KIRAKÓ ---------- */
   #puzzleScreen{display:none;}
   .pz-instr{font-size:14px;font-weight:600;color:var(--ink-soft);margin:2px 0 12px;}
-  .pz-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;max-width:380px;margin:0 auto;}
-  .pz-cell{aspect-ratio:1;display:flex;align-items:center;justify-content:center;border-radius:14px;
-    font-weight:700;font-size:20px;}
+  .pz-grid-wrap{overflow-x:auto;padding-bottom:2px;}
+  .pz-grid{display:grid;gap:6px;width:max-content;max-width:100%;margin:0 auto;}
+  .pz-cell{aspect-ratio:1;display:flex;align-items:center;justify-content:center;border-radius:12px;
+    font-weight:700;font-size:18px;}
   .pz-cell.num{background:#fff;border:3px dashed #d9c9ad;color:#c9b89c;cursor:pointer;}
   .pz-cell.num.given{background:var(--cream);border:3px solid #fff;color:var(--ink);cursor:default;}
   .pz-cell.num.filled{border-style:solid;border-color:#fff;color:var(--green-dark);}
@@ -417,7 +418,7 @@
     <div class="problem-card">
       <div class="guide">🦉</div>
       <div class="pz-instr">Rakd a számokat a helyükre, hogy minden egyenlet igaz legyen!</div>
-      <div class="pz-grid" id="pzGrid"></div>
+      <div class="pz-grid-wrap"><div class="pz-grid" id="pzGrid"></div></div>
       <div class="feedback" id="pzFeedback"></div>
       <div class="pz-pool" id="pzPool"></div>
     </div>
@@ -965,109 +966,275 @@ function renderParent(){
 }
 
 /* ---------------- Matek-kirakó ---------------- */
-// Rács: 3x3 szám (a,b,c / d,e,f / g,h,i), ahol minden SOR ugyanazt a
-// "sorműveletet" (opRow), minden OSZLOP ugyanazt az "oszlopműveletet"
-// (opCol) használja: a opRow b = c, d opRow e = f, g opRow h = i,
-// a opCol d = g, b opCol e = h, c opCol f = i.
-// Ha opRow és opCol is csak '+' vagy '−', ez a szerkezet ALGEBRAILAG
-// MINDIG konzisztens (a sarok-egyenlet automatikusan teljesül,
-// bármilyen a,b,d,e-ből indulunk) — ezért nem kell drága
-// visszalépéses keresés, elég egyszerű, gyors elutasításos
-// (rejection sampling) generálás a határok (≤100, nincs negatív)
-// betartásához. A × emiatt szándékosan NINCS ebben a rácsban: a ×
-// bekeverése ugyanezt a garanciát elrontja (csak nagyon speciális,
-// véletlenszerűen alig előforduló számokra jönne ki konzisztensen),
-// ezért a szintkülönbséget az üres cellák számával, a számok
-// nagyságával és elterelő számokkal érjük el, nem művelet-keveréssel.
+// A kirakó sok kis HÁROMTAGÚ egyenletből (a op b = c) épül fel, amik
+// egy-egy KÖZÖS cellán kapcsolódnak (mint egy keresztrejtvény), vízszintes
+// és függőleges "karokkal". A szerkezet mindig KÖRMENTES (fa): minden új
+// egyenlet PONTOSAN EGY már meglévő cellán csatlakozik, és a másik két
+// cellája teljesen szabad (nincs máshol felhasználva). Emiatt a feltöltés
+// tisztán KONSTRUKTÍV, keresés nélkül: a közös cella értéke (K) már adott,
+// csak a másik két számot (és a műveletet) kell úgy megválasztani, hogy az
+// egyenlet igaz legyen és a korlátok (0-100, nincs negatív, osztás egész,
+// szorzás táblán belül) teljesüljenek — nincs szükség globális
+// visszalépésre, csak helyi, cellánkénti próbálkozásra (lásd
+// tryConstructEquation). Ha egy adott (közös cella, irány, szerep, művelet)
+// kombináció nem ad érvényes számot, egyszerűen másikat próbálunk; végső
+// esetben egy MINDIG működő +/− tartalék zárja le az ágat (lásd
+// tryAttachUniversalFallback), így garantáltan sosem ragad be a generálás.
+//
+// Az előző (v1) kirakó egy szabályos 3x3 rács volt, ahol minden SOR egy
+// közös műveletet, minden OSZLOP egy másikat használt — ott a × azért nem
+// fért bele, mert a "sarok" cellának két irányból (sor és oszlop felől is)
+// pontosan ugyanazt kellett volna adnia, ami ×-nél csak elvétve, véletlenül
+// jön ki a 100-as korláton belül. Az új fa-szerkezetben nincs ilyen "két
+// irányból egyeztetendő sarok" — minden cella legfeljebb 2 egyenletnek
+// (1 vízszintes + 1 függőleges) a tagja, és mindig csak AZ EGYIK irányból
+// már ismert, ezért a × és ÷ is simán, garantáltan beépíthető.
 const PUZZLE_LEVELS = {
-  easy:   { empties:3, distractors:0, base:[2,20],  reward:30, label:'Könnyű' },
-  medium: { empties:5, distractors:1, base:[5,60],  reward:50, label:'Középhaladó' },
-  hard:   { empties:7, distractors:2, base:[10,80], reward:80, label:'Haladó' }
+  easy:   { numEquations:4, ops:['+','−'],         base:[2,20],  empties:3, distractors:0, reward:35,  label:'Könnyű',      maxSpan:9 },
+  medium: { numEquations:6, ops:['+','−','×'],     base:[2,40],  empties:5, distractors:1, reward:60,  label:'Középhaladó', maxSpan:11 },
+  hard:   { numEquations:9, ops:['+','−','×','÷'], base:[2,50],  empties:8, distractors:2, reward:100, label:'Haladó',      maxSpan:13 }
 };
-const PUZZLE_FALLBACK = {
-  easy:   { opRow:'+', opCol:'+', grid:[[3,4,7],[2,5,7],[5,9,14]] },
-  medium: { opRow:'+', opCol:'−', grid:[[12,20,32],[7,9,16],[5,11,16]] },
-  hard:   { opRow:'−', opCol:'−', grid:[[40,15,25],[18,8,10],[22,7,15]] }
-};
+const PUZZLE_OPSYM = {'+':'＋','−':'−','×':'×','÷':'÷'};
+const TABLE_NUMS = [2,3,4,5,6,7,8,9,10];
 
-function applyOp(op, x, y){ return op==='+' ? x+y : x-y; }
-
-function tryBuildSolvedGrid(level){
-  const cfg = PUZZLE_LEVELS[level];
-  const opPool = level==='easy' ? ['+'] : ['+','−'];
-  const opRow = opPool[rnd(0, opPool.length-1)];
-  const opCol = opPool[rnd(0, opPool.length-1)];
-  const [lo,hi] = cfg.base;
-  for(let attempt=0; attempt<500; attempt++){
-    const a = rnd(lo,hi);
-    const d = rnd(lo,hi);
-    const b = opRow==='−' ? rnd(1,a) : rnd(lo,hi);
-    const e = opRow==='−' ? rnd(1,d) : rnd(lo,hi);
-    if(opCol==='−' && (a<d || b<e)) continue; // oszlop-kivonás negatív lenne, próbáljunk újra
-    const c = applyOp(opRow, a, b);
-    const f = applyOp(opRow, d, e);
-    const g = applyOp(opCol, a, d);
-    const h = applyOp(opCol, b, e);
-    const i = applyOp(opRow, g, h);
-    const iCheck = applyOp(opCol, c, f);
-    if(i !== iCheck) continue; // sosem kéne előfordulnia (lásd fenti algebrai bizonyítás), de olcsó ellenőrizni
-    const cells = [a,b,c,d,e,f,g,h,i];
-    if(cells.some(v=>v<0 || v>100)) continue;
-    return { opRow, opCol, grid:[[a,b,c],[d,e,f],[g,h,i]] };
-  }
-  return null;
-}
-
-function validateSolvedGrid(grid, opRow, opCol){
-  if(!grid || grid.length!==3 || grid.some(row=>!row || row.length!==3)) return false;
-  const [[a,b,c],[d,e,f],[g,h,i]] = grid;
-  const cells=[a,b,c,d,e,f,g,h,i];
-  if(cells.some(v=>typeof v!=='number' || !Number.isFinite(v) || v<0 || v>100)) return false;
-  if(applyOp(opRow,a,b)!==c) return false;
-  if(applyOp(opRow,d,e)!==f) return false;
-  if(applyOp(opRow,g,h)!==i) return false;
-  if(applyOp(opCol,a,d)!==g) return false;
-  if(applyOp(opCol,b,e)!==h) return false;
-  if(applyOp(opCol,c,f)!==i) return false;
-  return true;
+function applyOpX(op, x, y){
+  if(op==='+') return x+y;
+  if(op==='−') return x-y;
+  if(op==='×') return x*y;
+  return x/y; // '÷' — a hívó féltől mindig elvárt, hogy csak akkor hívja, ha ez egész szám
 }
 
 function shufflePuzzleArray(arr){
   for(let idx=arr.length-1; idx>0; idx--){ const j=rnd(0,idx); const t=arr[idx]; arr[idx]=arr[j]; arr[j]=t; }
   return arr;
 }
+function keyOf(row,col){ return row+','+col; }
+
+// Szabadon (nincs kötött közös cella) felépít egy a op b = c hármast a
+// megadott tartományban — ez indítja a fát (a "mag"-egyenlet).
+function constructFreeEquation(op, base){
+  const [lo,hi] = base;
+  for(let t=0;t<300;t++){
+    if(op==='+'){ const a=rnd(lo,hi); const maxB=Math.min(hi,100-a); if(maxB<lo) continue; const b=rnd(lo,maxB); return {a,b,c:a+b}; }
+    if(op==='−'){ const a=rnd(Math.max(lo,2),hi); const maxB=Math.min(hi,a-1); if(maxB<1) continue; const b=rnd(1,maxB); return {a,b,c:a-b}; }
+    if(op==='×'){ const a=rnd(2,10); const b=rnd(2,10); if(a*b>100) continue; return {a,b,c:a*b}; }
+    if(op==='÷'){ const b=rnd(2,10); const c=rnd(2,10); const a=b*c; if(a>100) continue; return {a,b,c}; }
+  }
+  return null;
+}
+
+// A megadott "role" pozícióban (a/b/c) a K érték már adott (ez a közös
+// cella) — megpróbálja a másik két számot úgy megválasztani, hogy
+// "op"-pal igaz egyenlet és érvényes (0-100, egész, táblán belüli) legyen.
+// Visszaad {a,b,c}-t, vagy null-t, ha ezzel az op/role/K kombinációval nem
+// megy (ilyenkor a hívó másik op-ot, role-t vagy irányt próbál).
+function tryConstructEquation(op, role, K, base){
+  const [lo,hi] = base;
+  if(role==='a'){
+    if(op==='+'){ const maxB=100-K; if(maxB<1) return null; const b=rnd(Math.max(1,Math.min(lo,maxB)), maxB); return {a:K,b,c:K+b}; }
+    if(op==='−'){ if(K<1) return null; const maxB=Math.min(K,hi); const b=rnd(1, Math.max(1,maxB)); const c=K-b; if(c<0) return null; return {a:K,b,c}; }
+    if(op==='×'){ const cand=TABLE_NUMS.filter(x=>K*x<=100); if(!cand.length) return null; const b=cand[rnd(0,cand.length-1)]; return {a:K,b,c:K*b}; }
+    if(op==='÷'){ const cand=TABLE_NUMS.filter(x=>K>0 && K%x===0); if(!cand.length) return null; const b=cand[rnd(0,cand.length-1)]; return {a:K,b,c:K/b}; }
+  }
+  if(role==='b'){
+    if(op==='+'){ const maxA=100-K; if(maxA<1) return null; const a=rnd(Math.max(1,Math.min(lo,maxA)), maxA); return {a,b:K,c:a+K}; }
+    if(op==='−'){ const minA=K+1; if(minA>100) return null; const a=rnd(minA, Math.max(minA,Math.min(100,hi+K))); const c=a-K; if(c<0||a>100) return null; return {a,b:K,c}; }
+    if(op==='×'){ const cand=TABLE_NUMS.filter(x=>x*K<=100); if(!cand.length) return null; const a=cand[rnd(0,cand.length-1)]; return {a,b:K,c:a*K}; }
+    if(op==='÷'){ if(K<1) return null; let cand=TABLE_NUMS.filter(c=>K*c<=100); if(!cand.length) cand=[1]; const c=cand[rnd(0,cand.length-1)]; return {a:K*c,b:K,c}; }
+  }
+  // role==='c'
+  if(op==='+'){ if(K<2) return null; const maxA=Math.min(hi,K-1); if(maxA<1) return null; const a=rnd(1,maxA); const b=K-a; if(b<1) return null; return {a,b,c:K}; }
+  if(op==='−'){ const maxB=Math.min(hi,100-K); if(maxB<1) return null; const b=rnd(1,maxB); const a=K+b; if(a>100) return null; return {a,b,c:K}; }
+  if(op==='×'){ const pairs=[]; for(const x of TABLE_NUMS){ if(K%x===0){ const y=K/x; if(y>=2&&y<=10) pairs.push([x,y]); } } if(!pairs.length) return null; const [a,b]=pairs[rnd(0,pairs.length-1)]; return {a,b,c:K}; }
+  if(op==='÷'){ if(K<1) return null; let cand=TABLE_NUMS.filter(y=>K*y<=100); if(!cand.length) cand=[1]; const y=cand[rnd(0,cand.length-1)]; return {a:K*y,b:y,c:K}; }
+  return null;
+}
+
+// Kiszámolja egy 5 hosszú (a,op,b,=,c) vonal abszolút celláit, ha a
+// junction (row,col) a vonal "role" (a/b/c) pozícióján van.
+function computeLineCoords(row,col,orientation,role){
+  const roleOffset = {a:0,b:2,c:4}[role];
+  const startRow = orientation==='V' ? row-roleOffset : row;
+  const startCol = orientation==='H' ? col-roleOffset : col;
+  function at(slot){ return orientation==='H' ? {row:startRow, col:startCol+slot} : {row:startRow+slot, col:startCol}; }
+  return { aPos:at(0), opPos:at(1), bPos:at(2), eqPos:at(3), cPos:at(4) };
+}
+
+function placeEquationCells(graph, coords, values, op, orientation){
+  const posMap = {a:coords.aPos, b:coords.bPos, c:coords.cPos};
+  for(const role of ['a','b','c']){
+    const p = posMap[role], k = keyOf(p.row,p.col);
+    graph.cellValues.set(k, values[role]);
+    if(!graph.cellOrientations.has(k)) graph.cellOrientations.set(k, new Set());
+    graph.cellOrientations.get(k).add(orientation);
+    graph.occupied.add(k);
+  }
+  graph.occupied.add(keyOf(coords.opPos.row,coords.opPos.col));
+  graph.occupied.add(keyOf(coords.eqPos.row,coords.eqPos.col));
+  graph.equations.push({ op, orientation, cells:{a:coords.aPos,b:coords.bPos,c:coords.cPos}, opSymbolCell:coords.opPos, eqSymbolCell:coords.eqPos });
+  for(const p of [coords.aPos,coords.opPos,coords.bPos,coords.eqPos,coords.cPos]){
+    if(p.row<graph.bounds.minRow) graph.bounds.minRow=p.row;
+    if(p.row>graph.bounds.maxRow) graph.bounds.maxRow=p.row;
+    if(p.col<graph.bounds.minCol) graph.bounds.minCol=p.col;
+    if(p.col>graph.bounds.maxCol) graph.bounds.maxCol=p.col;
+  }
+}
+
+// maxSpan: ha adott, a jelölt elhelyezést kihagyjuk, ha az így bővülő
+// befoglaló téglalap bármelyik oldala meghaladná ezt (kompakt forma
+// preferálása) — de ez csak "puha" korlát, lásd buildEquationTree.
+function tryAttachOneEquation(graph, allowedOps, base, maxSpan){
+  const candidateKeys = shufflePuzzleArray([...graph.cellValues.keys()].filter(k=>graph.cellOrientations.get(k).size<2));
+  for(const key of candidateKeys){
+    const [row,col] = key.split(',').map(Number);
+    const K = graph.cellValues.get(key);
+    const orientOptions = shufflePuzzleArray(['H','V'].filter(o=>!graph.cellOrientations.get(key).has(o)));
+    for(const orientation of orientOptions){
+      const roleOptions = shufflePuzzleArray(['a','b','c']);
+      for(const role of roleOptions){
+        const coords = computeLineCoords(row,col,orientation,role);
+        const cellsList = [coords.aPos,coords.opPos,coords.bPos,coords.eqPos,coords.cPos];
+        const nonJunctionKeys = cellsList.map(p=>keyOf(p.row,p.col)).filter(k2=>k2!==key);
+        if(nonJunctionKeys.some(k2=>graph.occupied.has(k2))) continue;
+        if(maxSpan){
+          let minRow=graph.bounds.minRow, maxRow=graph.bounds.maxRow, minCol=graph.bounds.minCol, maxCol=graph.bounds.maxCol;
+          for(const p of cellsList){
+            if(p.row<minRow) minRow=p.row; if(p.row>maxRow) maxRow=p.row;
+            if(p.col<minCol) minCol=p.col; if(p.col>maxCol) maxCol=p.col;
+          }
+          if((maxRow-minRow+1)>maxSpan || (maxCol-minCol+1)>maxSpan) continue;
+        }
+        const opsShuffled = shufflePuzzleArray(allowedOps.slice());
+        for(const op of opsShuffled){
+          const values = tryConstructEquation(op, role, K, base);
+          if(values){ placeEquationCells(graph, coords, values, op, orientation); return true; }
+        }
+      }
+    }
+  }
+  return false;
+}
+
+// Mindig működő tartalék: '+' (vagy 100-nál '−') a közös cella 'a' szerepében,
+// b=1-gyel — ez bármilyen 0-100 közötti K-ra érvényes egyenletet ad, így a
+// fa-építés sosem ragadhat be egy makacs junction-nél.
+function tryAttachUniversalFallback(graph){
+  const candidateKeys = shufflePuzzleArray([...graph.cellValues.keys()].filter(k=>graph.cellOrientations.get(k).size<2));
+  for(const key of candidateKeys){
+    const [row,col] = key.split(',').map(Number);
+    const K = graph.cellValues.get(key);
+    const orientOptions = shufflePuzzleArray(['H','V'].filter(o=>!graph.cellOrientations.get(key).has(o)));
+    for(const orientation of orientOptions){
+      const coords = computeLineCoords(row,col,orientation,'a');
+      const nonJunctionKeys = [coords.aPos,coords.opPos,coords.bPos,coords.eqPos,coords.cPos]
+        .map(p=>keyOf(p.row,p.col)).filter(k2=>k2!==key);
+      if(nonJunctionKeys.some(k2=>graph.occupied.has(k2))) continue;
+      const op = K<100 ? '+' : '−';
+      const c = op==='+' ? K+1 : K-1;
+      if(c<0||c>100) continue;
+      placeEquationCells(graph, coords, {a:K,b:1,c}, op, orientation);
+      return true;
+    }
+  }
+  return false;
+}
+
+function buildEquationTree(level){
+  const cfg = PUZZLE_LEVELS[level];
+  for(let wholeAttempt=0; wholeAttempt<40; wholeAttempt++){
+    const graph = { occupied:new Set(), cellValues:new Map(), cellOrientations:new Map(), equations:[],
+      bounds:{minRow:Infinity,maxRow:-Infinity,minCol:Infinity,maxCol:-Infinity} };
+    const seedOp = cfg.ops[rnd(0,cfg.ops.length-1)];
+    const seed = constructFreeEquation(seedOp, cfg.base);
+    if(!seed) continue;
+    placeEquationCells(graph, computeLineCoords(0,0,'H','a'), seed, seedOp, 'H');
+
+    let ok = true;
+    for(let n=1; n<cfg.numEquations; n++){
+      let attached=false;
+      // 1. próba: kompakt forma preferálása (maxSpan-en belül)
+      for(let tries=0; tries<80 && !attached; tries++){ attached = tryAttachOneEquation(graph, cfg.ops, cfg.base, cfg.maxSpan); }
+      // 2. próba: ha a kompakt forma nem ment, engedjük nagyobbra nőni
+      if(!attached){ for(let tries=0; tries<80 && !attached; tries++){ attached = tryAttachOneEquation(graph, cfg.ops, cfg.base, null); } }
+      // végső, mindig működő tartalék
+      if(!attached) attached = tryAttachUniversalFallback(graph);
+      if(!attached){ ok=false; break; }
+    }
+    if(ok) return graph;
+  }
+  return null;
+}
+
+// Végigellenőrzi egy megoldott fa-szerkezetet: minden egyenlet igaz-e,
+// minden érték 0-100 közötti egész-e, és — a körmentesség bizonyítékaként —
+// a cellák száma pontosan 2*egyenletszám+1 (egy fánál minden új "él"
+// pontosan 2 új csúcsot ad hozzá az elsőn kívül).
+function validateEquationGraph(graph){
+  for(const eq of graph.equations){
+    const av = graph.cellValues.get(keyOf(eq.cells.a.row,eq.cells.a.col));
+    const bv = graph.cellValues.get(keyOf(eq.cells.b.row,eq.cells.b.col));
+    const cv = graph.cellValues.get(keyOf(eq.cells.c.row,eq.cells.c.col));
+    if([av,bv,cv].some(v=>typeof v!=='number' || !Number.isFinite(v) || v<0 || v>100)) return false;
+    if(eq.op==='÷' && !Number.isInteger(cv)) return false;
+    if(applyOpX(eq.op, av, bv) !== cv) return false;
+  }
+  const expectedCells = 2*graph.equations.length + 1;
+  if(graph.cellValues.size !== expectedCells) return false; // körmentesség (fa) ellenőrzése
+  return true;
+}
+
+// A player aktuális (esetleg részben üres) kitöltését ellenőrzi győzelemre.
+function validateCrossSolution(playerGrid, equations){
+  for(const eq of equations){
+    const av = playerGrid[keyOf(eq.cells.a.row,eq.cells.a.col)];
+    const bv = playerGrid[keyOf(eq.cells.b.row,eq.cells.b.col)];
+    const cv = playerGrid[keyOf(eq.cells.c.row,eq.cells.c.col)];
+    if(av==null || bv==null || cv==null) return false;
+    if(applyOpX(eq.op, av, bv) !== cv) return false;
+  }
+  return true;
+}
+
+const PUZZLE_FALLBACK_GRAPH = (function(){
+  // Szélső esetre (a fenti építés gyakorlatilag sosem, de védőhálóból):
+  // egy egyszerű, kézzel garantált 2-egyenletes "L" alakzat.
+  const graph = { occupied:new Set(), cellValues:new Map(), cellOrientations:new Map(), equations:[],
+    bounds:{minRow:Infinity,maxRow:-Infinity,minCol:Infinity,maxCol:-Infinity} };
+  placeEquationCells(graph, computeLineCoords(0,0,'H','a'), {a:3,b:4,c:7}, '+', 'H');
+  placeEquationCells(graph, computeLineCoords(0,0,'V','a'), {a:3,b:2,c:5}, '+', 'V');
+  return graph;
+})();
 
 function generatePuzzle(level){
-  const cfg = PUZZLE_LEVELS[level] ? level : 'easy';
-  level = cfg;
-  const config = PUZZLE_LEVELS[level];
-  const built = tryBuildSolvedGrid(level) || PUZZLE_FALLBACK[level];
+  if(!PUZZLE_LEVELS[level]) level = 'easy';
+  const cfg = PUZZLE_LEVELS[level];
+  const graph = buildEquationTree(level) || PUZZLE_FALLBACK_GRAPH;
 
-  const positions = [];
-  for(let r=0;r<3;r++) for(let c=0;c<3;c++) positions.push([r,c]);
-  shufflePuzzleArray(positions);
-  const removePositions = positions.slice(0, config.empties);
-  const emptyMask = [[false,false,false],[false,false,false],[false,false,false]];
-  const removedValues = [];
-  for(const [r,c] of removePositions){ emptyMask[r][c]=true; removedValues.push(built.grid[r][c]); }
+  const cells = {};
+  for(const [k,v] of graph.cellValues) cells[k] = v;
+  const allKeys = Object.keys(cells);
 
-  const allValues = [];
-  for(let r=0;r<3;r++) for(let c=0;c<3;c++) allValues.push(built.grid[r][c]);
+  const shuffledKeys = shufflePuzzleArray(allKeys.slice());
+  const numEmpties = Math.min(cfg.empties, allKeys.length - 1); // legalább 1 adott cella mindig maradjon
+  const emptyKeys = shuffledKeys.slice(0, numEmpties);
+  const emptyMask = new Set(emptyKeys);
+  const removedValues = emptyKeys.map(k=>cells[k]);
 
+  const allValues = allKeys.map(k=>cells[k]);
   const distractors = [];
   let guard = 0;
-  while(distractors.length < config.distractors && guard < 300){
+  while(distractors.length < cfg.distractors && guard < 400){
     guard++;
-    const d = rnd(config.base[0], Math.max(config.base[1], 10));
+    const d = rnd(cfg.base[0], Math.max(cfg.base[1], 10));
     if(!allValues.includes(d) && !distractors.includes(d)) distractors.push(d);
   }
 
   const pool = shufflePuzzleArray([...removedValues, ...distractors]);
-  return { level, opRow:built.opRow, opCol:built.opCol, solution:built.grid, emptyMask, pool };
+
+  return { level, cells, emptyMask, equations:graph.equations, pool, bounds:{...graph.bounds} };
 }
 
 let puzzle = null, puzzleGrid = null, puzzlePoolState = null, puzzleSelected = null;
-const PUZZLE_OPSYM = {'+':'＋','−':'−'};
 
 function setPuzzleDifficulty(val){
   state.puzzlePref.difficulty = val;
@@ -1082,8 +1249,10 @@ function startPuzzle(){
   document.getElementById('puzzleScreen').style.display='block';
   window.scrollTo(0,0);
   puzzle = generatePuzzle(state.puzzlePref.difficulty);
-  puzzleGrid = [[null,null,null],[null,null,null],[null,null,null]];
-  for(let r=0;r<3;r++) for(let c=0;c<3;c++){ if(!puzzle.emptyMask[r][c]) puzzleGrid[r][c]=puzzle.solution[r][c]; }
+  puzzleGrid = {};
+  for(const key of Object.keys(puzzle.cells)){
+    puzzleGrid[key] = puzzle.emptyMask.has(key) ? null : puzzle.cells[key];
+  }
   puzzlePoolState = puzzle.pool.map(v=>({value:v, placed:false}));
   puzzleSelected = null;
   flashPuzzleFeedback('','');
@@ -1091,25 +1260,31 @@ function startPuzzle(){
 }
 
 function renderPuzzle(){
+  const b = puzzle.bounds;
+  const cols = b.maxCol-b.minCol+1, rows = b.maxRow-b.minRow+1;
   const gridEl = document.getElementById('pzGrid');
   gridEl.innerHTML = '';
-  for(let dr=0; dr<5; dr++){
-    for(let dc=0; dc<5; dc++){
+  gridEl.style.gridTemplateColumns = 'repeat('+cols+', minmax(38px, 64px))';
+
+  const symbolMap = {};
+  for(const eq of puzzle.equations){
+    symbolMap[keyOf(eq.opSymbolCell.row,eq.opSymbolCell.col)] = { type:'op', symbol:eq.op };
+    symbolMap[keyOf(eq.eqSymbolCell.row,eq.eqSymbolCell.col)] = { type:'eq' };
+  }
+
+  for(let r=b.minRow; r<=b.maxRow; r++){
+    for(let c=b.minCol; c<=b.maxCol; c++){
+      const key = keyOf(r,c);
       const cell = document.createElement('div');
-      const isNumRow = dr%2===0, isNumCol = dc%2===0;
-      if(isNumRow && isNumCol){
-        const r=dr/2, c=dc/2;
-        const given = !puzzle.emptyMask[r][c];
-        const val = puzzleGrid[r][c];
-        cell.className = 'pz-cell num ' + (given ? 'given' : (val===null ? 'empty' : 'filled'));
-        cell.textContent = given ? puzzle.solution[r][c] : (val===null ? '?' : val);
-        if(!given){ const rr=r, cc=c; cell.onclick=()=>onTapPuzzleCell(rr,cc); }
-      } else if(isNumRow && !isNumCol){
+      if(Object.prototype.hasOwnProperty.call(puzzle.cells,key)){
+        const given = !puzzle.emptyMask.has(key);
+        const val = puzzleGrid[key];
+        cell.className = 'pz-cell num ' + (given ? 'given' : (val==null ? 'empty' : 'filled'));
+        cell.textContent = given ? puzzle.cells[key] : (val==null ? '?' : val);
+        if(!given){ const kk=key; cell.onclick=()=>onTapPuzzleCell(kk); }
+      } else if(symbolMap[key]){
         cell.className = 'pz-cell op';
-        cell.textContent = dc===1 ? PUZZLE_OPSYM[puzzle.opRow] : '=';
-      } else if(!isNumRow && isNumCol){
-        cell.className = 'pz-cell op';
-        cell.textContent = dr===1 ? PUZZLE_OPSYM[puzzle.opCol] : '=';
+        cell.textContent = symbolMap[key].type==='eq' ? '=' : PUZZLE_OPSYM[symbolMap[key].symbol];
       } else {
         cell.className = 'pz-cell blank';
       }
@@ -1134,11 +1309,11 @@ function onTapPuzzlePoolChip(idx){
   renderPuzzle();
 }
 
-function onTapPuzzleCell(r,c){
-  if(!puzzle.emptyMask[r][c]) return;
-  if(puzzleGrid[r][c] !== null){
-    const val = puzzleGrid[r][c];
-    puzzleGrid[r][c] = null;
+function onTapPuzzleCell(key){
+  if(!puzzle.emptyMask.has(key)) return;
+  if(puzzleGrid[key] != null){
+    const val = puzzleGrid[key];
+    puzzleGrid[key] = null;
     const entry = puzzlePoolState.find(e=>e.placed && e.value===val);
     if(entry) entry.placed = false;
     renderPuzzle();
@@ -1149,7 +1324,7 @@ function onTapPuzzleCell(r,c){
     return;
   }
   const chip = puzzlePoolState[puzzleSelected];
-  puzzleGrid[r][c] = chip.value;
+  puzzleGrid[key] = chip.value;
   chip.placed = true;
   puzzleSelected = null;
   flashPuzzleFeedback('','');
@@ -1163,9 +1338,9 @@ function flashPuzzleFeedback(msg, type){
 }
 
 function checkPuzzleComplete(){
-  const filled = puzzleGrid.every(row=>row.every(v=>v!==null));
+  const filled = Object.keys(puzzle.cells).every(key=>puzzleGrid[key]!=null);
   if(!filled) return;
-  const ok = validateSolvedGrid(puzzleGrid, puzzle.opRow, puzzle.opCol);
+  const ok = validateCrossSolution(puzzleGrid, puzzle.equations);
   if(ok){ puzzleWin(); }
   else {
     flashPuzzleFeedback('Majdnem! Nézd meg még egyszer a jeleket. 💪','retry');
