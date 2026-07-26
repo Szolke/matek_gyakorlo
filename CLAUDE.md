@@ -37,6 +37,11 @@ Sima HTML/CSS/JS, nincs keretrendszer, nincs build lépés, nincs npm/package.js
 - `dailyHistory`: `{'YYYY-MM-DD': szám}`, max 14 napra metszve — a szülői nézet 7 napos grafikonjához.
 - Szülői nézet kapukódja: "Mennyi 7×8?" → 56 (`checkParentGate()` az index.html-ben).
 - Új mezők betöltésekor mindig legyen alapérték régi mentésekhez (lásd `mergeStats`, `load()`).
+- `puzzlesSolved` (szám), `puzzlePref.difficulty` (`'easy'|'medium'|'hard'`) — Matek-kirakó mód.
+
+## Matek-kirakó (matek-keresztrejtvény mód)
+
+3x3 számrács (5x5 megjelenítő rács fix +/− és = jelekkel): minden SOR ugyanazt a műveletet használja, minden OSZLOP egy másikat (`a opRow b = c`, ..., `a opCol d = g`, ...). Ha `opRow`/`opCol` csak `+`/`−`, a rács **algebrailag mindig konzisztens** bármilyen kezdőszámból — ezért a generálás (`generatePuzzle()` az index.html-ben) egyszerű elutasításos mintavétel, nincs visszalépéses keresés. A × **szándékosan nincs** ebben a rácsban (a garancia rá nem áll, lásd kód-kommentár `tryBuildSolvedGrid()` fölött) — a nehézséget az üres cellák száma (3/5/7), számnagyság és elterelő számok adják (`PUZZLE_LEVELS`). Ha ezt a döntést felül akarod írni, előbb olvasd el a kód-kommentárt.
 
 ## Mindig így
 
