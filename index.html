@@ -34,6 +34,8 @@
     --ink-soft:#7a6a58;
     --correct:#33b86a;
     --amber:#f6a623;
+    --teal:#2ab7ab;
+    --teal-dark:#1f9a90;
     --shadow:0 8px 0 rgba(0,0,0,.12);
     --shadow-soft:0 10px 24px rgba(74,52,20,.14);
   }
@@ -157,8 +159,14 @@
   .op-mix .emo{font-size:32px;}
   .op-words{background:var(--brown);grid-column:1 / -1;flex-direction:row;justify-content:center;gap:12px;}
   .op-words .emo{font-size:32px;}
+  .op-puzzle{background:var(--teal);grid-column:1 / -1;flex-direction:row;justify-content:center;gap:12px;}
+  .op-puzzle:active{background:var(--teal-dark);}
+  .op-puzzle .emo{font-size:32px;}
 
   .op-wrap{display:flex;flex-direction:column;gap:6px;}
+  .op-wrap.full{grid-column:1 / -1;}
+  .op-wrap.full .op-btn{flex-direction:row;justify-content:center;gap:12px;}
+  .op-wrap.full .op-btn .emo{font-size:32px;}
   .table-sel{
     width:100%;font-family:inherit;font-size:13px;font-weight:600;color:var(--ink-soft);
     background:#fff;border:none;border-radius:12px;padding:7px 8px;text-align:center;
@@ -192,6 +200,25 @@
     width:100%;text-align:center;padding:3px 2px;min-height:14px;}
   .zoo-cell.empty{background:linear-gradient(180deg,#d7dde0 0%,#d7dde0 55%,#bcc6ca 55%,#bcc6ca 100%);}
   .zoo-cell.empty .animal{opacity:.45;filter:grayscale(1);}
+
+  /* ---------- KIRAKÓ ---------- */
+  #puzzleScreen{display:none;}
+  .pz-instr{font-size:14px;font-weight:600;color:var(--ink-soft);margin:2px 0 12px;}
+  .pz-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;max-width:380px;margin:0 auto;}
+  .pz-cell{aspect-ratio:1;display:flex;align-items:center;justify-content:center;border-radius:14px;
+    font-weight:700;font-size:20px;}
+  .pz-cell.num{background:#fff;border:3px dashed #d9c9ad;color:#c9b89c;cursor:pointer;}
+  .pz-cell.num.given{background:var(--cream);border:3px solid #fff;color:var(--ink);cursor:default;}
+  .pz-cell.num.filled{border-style:solid;border-color:#fff;color:var(--green-dark);}
+  .pz-cell.op{color:var(--orange-dark);font-size:22px;background:transparent;}
+  .pz-cell.blank{background:transparent;}
+
+  .pz-pool{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:18px;min-height:56px;}
+  .pz-chip{min-width:52px;height:52px;padding:0 10px;border-radius:16px;background:#fff;border:3px solid #fff;
+    box-shadow:var(--shadow-soft);font-weight:700;font-size:20px;color:var(--ink);
+    display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .08s ease;}
+  .pz-chip.selected{background:var(--green);color:#fff;transform:translateY(-4px);box-shadow:0 6px 0 rgba(0,0,0,.12);}
+  .pz-chip.used{visibility:hidden;}
 
   /* ---------- PLAY ---------- */
   #play{display:none;}
@@ -351,6 +378,15 @@
         <span class="emo">🐵</span><span class="nm">Vegyes kaland</span></button>
       <button class="op-btn op-words" onclick="startGame('words')">
         <span class="emo">📖</span><span class="nm">Állatos történetek</span></button>
+      <div class="op-wrap full">
+        <button class="op-btn op-puzzle" onclick="startPuzzle()">
+          <span class="emo">🦉</span><span class="nm">Matek-kirakó</span></button>
+        <select class="table-sel" id="puzzleDifficultySel" onchange="setPuzzleDifficulty(this.value)">
+          <option value="easy">Könnyű</option>
+          <option value="medium">Középhaladó</option>
+          <option value="hard">Haladó</option>
+        </select>
+      </div>
     </div>
 
     <div class="section-h"><span style="flex:1;">🏅 Jelvényeid</span><button class="zoo-open-btn" onclick="goZoo()">🦁 Állatkertem</button></div>
@@ -369,6 +405,22 @@
       <p class="lvl">Minden megszerzett jelvény egy új állat a kertedben!</p>
     </div>
     <div class="zoo-grid" id="zooGrid"></div>
+  </div>
+
+  <!-- ============ KIRAKÓ ============ -->
+  <div id="puzzleScreen">
+    <div class="top">
+      <button class="back" onclick="goHome()">🏠</button>
+      <div class="spacer"></div>
+      <button class="snd" onclick="startPuzzle()" title="Új kirakó">🔄</button>
+    </div>
+    <div class="problem-card">
+      <div class="guide">🦉</div>
+      <div class="pz-instr">Rakd a számokat a helyükre, hogy minden egyenlet igaz legyen!</div>
+      <div class="pz-grid" id="pzGrid"></div>
+      <div class="feedback" id="pzFeedback"></div>
+      <div class="pz-pool" id="pzPool"></div>
+    </div>
   </div>
 
   <!-- ============ SZÜLŐI NÉZET ============ -->
@@ -507,7 +559,9 @@ const DEFAULT = {points:0, streak:0, bestStreak:0, totalCorrect:0,
   stats: buildDefaultStats(),
   tablePref:{mul:'all', div:'all'},
   daily:{date:'', correctToday:0, streak:0, goalMetToday:false},
-  dailyHistory:{}};
+  dailyHistory:{},
+  puzzlesSolved:0,
+  puzzlePref:{difficulty:'easy'}};
 let state = JSON.parse(JSON.stringify(DEFAULT));
 
 const BADGES = [
@@ -525,6 +579,8 @@ const BADGES = [
   {id:'lion',    emoji:'🦁', name:'Bátor oroszlán',    desc:'750 pont',                ok:s=>s.points>=750},
   {id:'panda',   emoji:'🐼', name:'Panda profi',       desc:'1000 pont',               ok:s=>s.points>=1000},
   {id:'unicorn', emoji:'🦄', name:'Matek-varázsló',    desc:'2000 pont',               ok:s=>s.points>=2000},
+  {id:'owl',     emoji:'🦉', name:'Kirakó-bagoly',     desc:'Első Matek-kirakó megoldva', ok:s=>(s.puzzlesSolved||0)>=1},
+  {id:'hedgehog',emoji:'🦔', name:'Kirakó-mester',     desc:'10 Matek-kirakó megoldva',   ok:s=>(s.puzzlesSolved||0)>=10},
 ];
 // pont-alapú jelvények a folyamatjelzőhöz
 const POINT_GOALS = [50,150,300,500,750,1000,2000];
@@ -685,6 +741,8 @@ async function load(){
       state.tablePref = Object.assign({mul:'all',div:'all'}, saved.tablePref||{});
       state.daily = Object.assign({date:'',correctToday:0,streak:0,goalMetToday:false}, saved.daily||{});
       state.dailyHistory = (saved.dailyHistory && typeof saved.dailyHistory==='object') ? saved.dailyHistory : {};
+      state.puzzlesSolved = typeof saved.puzzlesSolved==='number' ? saved.puzzlesSolved : 0;
+      state.puzzlePref = Object.assign({difficulty:'easy'}, saved.puzzlePref||{});
     }
   }catch(e){
     // Hálózati hiba esetén az alapállapottal indulunk, a játék így is működik.
@@ -791,6 +849,7 @@ function goHome(){
   document.getElementById('play').style.display='none';
   document.getElementById('zooScreen').style.display='none';
   document.getElementById('parentScreen').style.display='none';
+  document.getElementById('puzzleScreen').style.display='none';
   document.getElementById('home').style.display='block';
   window.scrollTo(0,0);
   renderHome();
@@ -905,6 +964,232 @@ function renderParent(){
   }
 }
 
+/* ---------------- Matek-kirakó ---------------- */
+// Rács: 3x3 szám (a,b,c / d,e,f / g,h,i), ahol minden SOR ugyanazt a
+// "sorműveletet" (opRow), minden OSZLOP ugyanazt az "oszlopműveletet"
+// (opCol) használja: a opRow b = c, d opRow e = f, g opRow h = i,
+// a opCol d = g, b opCol e = h, c opCol f = i.
+// Ha opRow és opCol is csak '+' vagy '−', ez a szerkezet ALGEBRAILAG
+// MINDIG konzisztens (a sarok-egyenlet automatikusan teljesül,
+// bármilyen a,b,d,e-ből indulunk) — ezért nem kell drága
+// visszalépéses keresés, elég egyszerű, gyors elutasításos
+// (rejection sampling) generálás a határok (≤100, nincs negatív)
+// betartásához. A × emiatt szándékosan NINCS ebben a rácsban: a ×
+// bekeverése ugyanezt a garanciát elrontja (csak nagyon speciális,
+// véletlenszerűen alig előforduló számokra jönne ki konzisztensen),
+// ezért a szintkülönbséget az üres cellák számával, a számok
+// nagyságával és elterelő számokkal érjük el, nem művelet-keveréssel.
+const PUZZLE_LEVELS = {
+  easy:   { empties:3, distractors:0, base:[2,20],  reward:30, label:'Könnyű' },
+  medium: { empties:5, distractors:1, base:[5,60],  reward:50, label:'Középhaladó' },
+  hard:   { empties:7, distractors:2, base:[10,80], reward:80, label:'Haladó' }
+};
+const PUZZLE_FALLBACK = {
+  easy:   { opRow:'+', opCol:'+', grid:[[3,4,7],[2,5,7],[5,9,14]] },
+  medium: { opRow:'+', opCol:'−', grid:[[12,20,32],[7,9,16],[5,11,16]] },
+  hard:   { opRow:'−', opCol:'−', grid:[[40,15,25],[18,8,10],[22,7,15]] }
+};
+
+function applyOp(op, x, y){ return op==='+' ? x+y : x-y; }
+
+function tryBuildSolvedGrid(level){
+  const cfg = PUZZLE_LEVELS[level];
+  const opPool = level==='easy' ? ['+'] : ['+','−'];
+  const opRow = opPool[rnd(0, opPool.length-1)];
+  const opCol = opPool[rnd(0, opPool.length-1)];
+  const [lo,hi] = cfg.base;
+  for(let attempt=0; attempt<500; attempt++){
+    const a = rnd(lo,hi);
+    const d = rnd(lo,hi);
+    const b = opRow==='−' ? rnd(1,a) : rnd(lo,hi);
+    const e = opRow==='−' ? rnd(1,d) : rnd(lo,hi);
+    if(opCol==='−' && (a<d || b<e)) continue; // oszlop-kivonás negatív lenne, próbáljunk újra
+    const c = applyOp(opRow, a, b);
+    const f = applyOp(opRow, d, e);
+    const g = applyOp(opCol, a, d);
+    const h = applyOp(opCol, b, e);
+    const i = applyOp(opRow, g, h);
+    const iCheck = applyOp(opCol, c, f);
+    if(i !== iCheck) continue; // sosem kéne előfordulnia (lásd fenti algebrai bizonyítás), de olcsó ellenőrizni
+    const cells = [a,b,c,d,e,f,g,h,i];
+    if(cells.some(v=>v<0 || v>100)) continue;
+    return { opRow, opCol, grid:[[a,b,c],[d,e,f],[g,h,i]] };
+  }
+  return null;
+}
+
+function validateSolvedGrid(grid, opRow, opCol){
+  if(!grid || grid.length!==3 || grid.some(row=>!row || row.length!==3)) return false;
+  const [[a,b,c],[d,e,f],[g,h,i]] = grid;
+  const cells=[a,b,c,d,e,f,g,h,i];
+  if(cells.some(v=>typeof v!=='number' || !Number.isFinite(v) || v<0 || v>100)) return false;
+  if(applyOp(opRow,a,b)!==c) return false;
+  if(applyOp(opRow,d,e)!==f) return false;
+  if(applyOp(opRow,g,h)!==i) return false;
+  if(applyOp(opCol,a,d)!==g) return false;
+  if(applyOp(opCol,b,e)!==h) return false;
+  if(applyOp(opCol,c,f)!==i) return false;
+  return true;
+}
+
+function shufflePuzzleArray(arr){
+  for(let idx=arr.length-1; idx>0; idx--){ const j=rnd(0,idx); const t=arr[idx]; arr[idx]=arr[j]; arr[j]=t; }
+  return arr;
+}
+
+function generatePuzzle(level){
+  const cfg = PUZZLE_LEVELS[level] ? level : 'easy';
+  level = cfg;
+  const config = PUZZLE_LEVELS[level];
+  const built = tryBuildSolvedGrid(level) || PUZZLE_FALLBACK[level];
+
+  const positions = [];
+  for(let r=0;r<3;r++) for(let c=0;c<3;c++) positions.push([r,c]);
+  shufflePuzzleArray(positions);
+  const removePositions = positions.slice(0, config.empties);
+  const emptyMask = [[false,false,false],[false,false,false],[false,false,false]];
+  const removedValues = [];
+  for(const [r,c] of removePositions){ emptyMask[r][c]=true; removedValues.push(built.grid[r][c]); }
+
+  const allValues = [];
+  for(let r=0;r<3;r++) for(let c=0;c<3;c++) allValues.push(built.grid[r][c]);
+
+  const distractors = [];
+  let guard = 0;
+  while(distractors.length < config.distractors && guard < 300){
+    guard++;
+    const d = rnd(config.base[0], Math.max(config.base[1], 10));
+    if(!allValues.includes(d) && !distractors.includes(d)) distractors.push(d);
+  }
+
+  const pool = shufflePuzzleArray([...removedValues, ...distractors]);
+  return { level, opRow:built.opRow, opCol:built.opCol, solution:built.grid, emptyMask, pool };
+}
+
+let puzzle = null, puzzleGrid = null, puzzlePoolState = null, puzzleSelected = null;
+const PUZZLE_OPSYM = {'+':'＋','−':'−'};
+
+function setPuzzleDifficulty(val){
+  state.puzzlePref.difficulty = val;
+  save();
+}
+
+function startPuzzle(){
+  document.getElementById('home').style.display='none';
+  document.getElementById('zooScreen').style.display='none';
+  document.getElementById('parentScreen').style.display='none';
+  document.getElementById('play').style.display='none';
+  document.getElementById('puzzleScreen').style.display='block';
+  window.scrollTo(0,0);
+  puzzle = generatePuzzle(state.puzzlePref.difficulty);
+  puzzleGrid = [[null,null,null],[null,null,null],[null,null,null]];
+  for(let r=0;r<3;r++) for(let c=0;c<3;c++){ if(!puzzle.emptyMask[r][c]) puzzleGrid[r][c]=puzzle.solution[r][c]; }
+  puzzlePoolState = puzzle.pool.map(v=>({value:v, placed:false}));
+  puzzleSelected = null;
+  flashPuzzleFeedback('','');
+  renderPuzzle();
+}
+
+function renderPuzzle(){
+  const gridEl = document.getElementById('pzGrid');
+  gridEl.innerHTML = '';
+  for(let dr=0; dr<5; dr++){
+    for(let dc=0; dc<5; dc++){
+      const cell = document.createElement('div');
+      const isNumRow = dr%2===0, isNumCol = dc%2===0;
+      if(isNumRow && isNumCol){
+        const r=dr/2, c=dc/2;
+        const given = !puzzle.emptyMask[r][c];
+        const val = puzzleGrid[r][c];
+        cell.className = 'pz-cell num ' + (given ? 'given' : (val===null ? 'empty' : 'filled'));
+        cell.textContent = given ? puzzle.solution[r][c] : (val===null ? '?' : val);
+        if(!given){ const rr=r, cc=c; cell.onclick=()=>onTapPuzzleCell(rr,cc); }
+      } else if(isNumRow && !isNumCol){
+        cell.className = 'pz-cell op';
+        cell.textContent = dc===1 ? PUZZLE_OPSYM[puzzle.opRow] : '=';
+      } else if(!isNumRow && isNumCol){
+        cell.className = 'pz-cell op';
+        cell.textContent = dr===1 ? PUZZLE_OPSYM[puzzle.opCol] : '=';
+      } else {
+        cell.className = 'pz-cell blank';
+      }
+      gridEl.appendChild(cell);
+    }
+  }
+
+  const poolEl = document.getElementById('pzPool');
+  poolEl.innerHTML = '';
+  puzzlePoolState.forEach((entry, idx)=>{
+    const chip = document.createElement('div');
+    chip.className = 'pz-chip' + (entry.placed ? ' used' : '') + (puzzleSelected===idx ? ' selected' : '');
+    chip.textContent = entry.value;
+    chip.onclick = ()=>onTapPuzzlePoolChip(idx);
+    poolEl.appendChild(chip);
+  });
+}
+
+function onTapPuzzlePoolChip(idx){
+  if(puzzlePoolState[idx].placed) return;
+  puzzleSelected = (puzzleSelected===idx) ? null : idx;
+  renderPuzzle();
+}
+
+function onTapPuzzleCell(r,c){
+  if(!puzzle.emptyMask[r][c]) return;
+  if(puzzleGrid[r][c] !== null){
+    const val = puzzleGrid[r][c];
+    puzzleGrid[r][c] = null;
+    const entry = puzzlePoolState.find(e=>e.placed && e.value===val);
+    if(entry) entry.placed = false;
+    renderPuzzle();
+    return;
+  }
+  if(puzzleSelected===null){
+    flashPuzzleFeedback('Először koppints egy számra lent! 👇','retry');
+    return;
+  }
+  const chip = puzzlePoolState[puzzleSelected];
+  puzzleGrid[r][c] = chip.value;
+  chip.placed = true;
+  puzzleSelected = null;
+  flashPuzzleFeedback('','');
+  renderPuzzle();
+  checkPuzzleComplete();
+}
+
+function flashPuzzleFeedback(msg, type){
+  const fb = document.getElementById('pzFeedback');
+  fb.textContent = msg; fb.className = 'feedback ' + (type||'');
+}
+
+function checkPuzzleComplete(){
+  const filled = puzzleGrid.every(row=>row.every(v=>v!==null));
+  if(!filled) return;
+  const ok = validateSolvedGrid(puzzleGrid, puzzle.opRow, puzzle.opCol);
+  if(ok){ puzzleWin(); }
+  else {
+    flashPuzzleFeedback('Majdnem! Nézd meg még egyszer a jeleket. 💪','retry');
+    const card = document.querySelector('#puzzleScreen .problem-card');
+    card.classList.remove('card-flash-bad'); void card.offsetWidth; card.classList.add('card-flash-bad');
+    beep('bad');
+  }
+}
+
+function puzzleWin(){
+  const gain = PUZZLE_LEVELS[puzzle.level].reward;
+  state.points += gain;
+  state.puzzlesSolved = (state.puzzlesSolved||0) + 1;
+  flashPuzzleFeedback('Szuper, minden egyenlet igaz! 🎉','good');
+  floatPoints('+'+gain);
+  confetti();
+  beep('good');
+  const newBadges = checkBadges();
+  save();
+  setTimeout(()=>{
+    if(newBadges.length){ afterBadgeClose = ()=>{}; showBadge(newBadges[0]); }
+  }, 700);
+}
+
 function nextProblem(){
   const probEl = document.getElementById('problem');
   if(mode==='words'){
@@ -980,7 +1265,7 @@ function correct(){
   const newBadges=checkBadges();
   save();
   setTimeout(()=>{
-    if(newBadges.length){ showBadge(newBadges[0]); }
+    if(newBadges.length){ afterBadgeClose = nextProblem; showBadge(newBadges[0]); }
     else if(dailyGoalJustMet){ showDailyGoalModal(); }
     else { nextProblem(); }
   }, 1000);
@@ -1028,9 +1313,11 @@ function showBadge(b){
   confetti(true);
   beep('badge');
 }
+let afterBadgeClose = null;
 function closeBadge(){
   document.getElementById('badgeModal').classList.remove('show');
-  nextProblem();
+  const cb = afterBadgeClose; afterBadgeClose = null;
+  if(cb) cb();
 }
 
 function showDailyGoalModal(){
@@ -1071,6 +1358,7 @@ function renderHome(){
   document.getElementById('homePoints').textContent=state.points;
   document.getElementById('tableSelMul').value = state.tablePref.mul;
   document.getElementById('tableSelDiv').value = state.tablePref.div;
+  document.getElementById('puzzleDifficultySel').value = state.puzzlePref.difficulty;
   document.getElementById('dailyStreakNum').textContent = state.daily.streak;
   document.getElementById('dailyTodayNum').textContent = Math.min(state.daily.correctToday, DAILY_GOAL);
   // folyamatjelző a következő pont-jelvényig
