@@ -13,6 +13,8 @@ Sima HTML/CSS/JS, nincs keretrendszer, nincs build lépés, nincs npm/package.js
 ## Fájlok
 
 - `index.html` — a teljes app (stílus + játéklogika egy fájlban)
+- `garden-logic.js` — az Állatkert-építő DOM-mentes rács-logikája (lásd lentebb), böngészőben `<script src="garden-logic.js">`-ként (`window.GardenLogic`), Node-ban `require()`-rel egyaránt betölthető — ezért futtatható rajta önteszt build lépés nélkül.
+- `garden-selftest.js` — az Állatkert-építő öntesztje, `require('./garden-logic.js')`-t használ, lásd "Parancsok".
 - `manifest.json`, `icon-180.png`, `icon-512.png` — PWA/kezdőképernyő ikon
 - `functions/api/progress.js` — Pages Function: GET/POST `/api/progress?profile=NÉV`, olvasás/írás a `PROGRESS_KV`-ból
 - `wrangler.toml` — KV namespace binding config (`PROGRESS_KV`); a Cloudflare Pages build ezt is beolvassa, a namespace ID-nak érvényes hex ID-nak kell lennie, placeholder nem működik
@@ -21,6 +23,8 @@ Sima HTML/CSS/JS, nincs keretrendszer, nincs build lépés, nincs npm/package.js
 ## Parancsok
 
 - Helyi teszt: `npx wrangler pages dev .`
+- Állatkert-építő önteszt (böngésző nélkül, Node-dal): `node garden-selftest.js` — 700 véletlen építési szekvenciát futtat le, minden lépés után ellenőrzi az összefüggőséget, az átfedés-mentességet, a nemnegatív egyenleget és a mentés→visszatöltés konzisztenciáját. Bármilyen `garden-logic.js`-módosítás után futtasd újra.
+- Szintaxis-ellenőrzés: `node --check garden-logic.js` (az index.html-be ágyazott `<script>` kódot érdemes kivágva ugyanígy ellenőrizni, ha nagyobb változtatás történt benne — a korábbi "Út" idézőjel-hiba is így derült volna ki előre).
 - Telepítés: `git push origin main` → Cloudflare Pages automatikusan újratelepít
 
 ## Fontos tények
@@ -40,6 +44,7 @@ Sima HTML/CSS/JS, nincs keretrendszer, nincs build lépés, nincs npm/package.js
 - `puzzlesSolved` (szám), `puzzlePref.difficulty` (`'easy'|'medium'|'hard'`) — Matek-kirakó mód.
 - `sortsSolved` (szám), `sortPref.table` (`'1'..'10'`), `sortStats` (`{1..10: {correct,attempts}}`) — Hernyó-sorakozó mód, lásd lent, **teljesen külön** a fenti `stats`-tól.
 - `trainsSolved` (szám) — Vonatos szorzótábla mód, lásd lent. Nincs `trainPref`: a táblát minden induláskor egy külön választóképernyőn kell megadni, nincs mit perzisztálni.
+- `garden` (`{version,entrance,path,enclosures,decor}`), `gardenCoins` (szám), `gardenReducedMotion` (bool) — Állatkert-építő mód, lásd lent.
 
 ## Matek-kirakó (matek-keresztrejtvény mód)
 
@@ -62,6 +67,30 @@ A gyerek egy külön táblaválasztó képernyőn (`trainSelectScreen`, `goTrain
 **Statisztika — szándékosan NEM írja a `state.stats.mulN` kategóriákat.** Ugyanaz az indoklás, mint a Hernyó-sorakozónál: a vagonok SORBAN, fejből történő feltöltése részben az összeadásos felépítést (N, N+N, N+N+N, …) is gyakoroltatja, ami eltér a fő gyakorló véletlen-sorrendű, egyetlen szorzatot kérő felidézésétől — torzítaná a súlyozott feladatválasztást (`categoryWeight()`/`weightedPick()`) és a szülői nézet felidézés-alapú pontosságát. A mód csak a pont-/jelvényrendszerbe és a napi célba illeszkedik, KÜLÖN per-tábla statisztikát (a Hernyó-sorakozó `sortStats`-jához hasonlót) szándékosan NEM kapott — alacsony prioritású, nem triviális haszonnal járt volna, ezért a `sortStats`-mintát itt nem másoltuk le feleslegesen.
 
 **Napi cél — 1 kör = 1 feladat.** A Hernyó-sorakozóval konzisztensen: egy teljesített vonat-kör (mind a 10 vagon kitöltve) a `daily.correctToday` számlálót csak **+1**-gyel növeli, nem +10-zel — lásd a Hernyó-sorakozó szakasz "Napi cél" indoklását, ugyanaz vonatkozik ide is.
+
+## Állatkert-építő
+
+A korábban statikus "Állatkertem" képernyőt (`#zooScreen`, `goZoo()`) egy felülnézetes, rács-alapú építő váltotta fel: a gyerek a matekért kapott pontokból utat, állat-kifutókat és díszeket rak le. A **jelvényrendszer maga (`BADGES`, `checkBadges()`, `showBadge()`) változatlan** — az építő csak az elkészült jelvények megjelenítésének módját cseréli le kirakós-építős élményre.
+
+**Rács-logika külön fájlban, DOM-mentesen.** Minden szabály (BFS-összefüggőség, lerakás/bontás feltételei, előnézet-halmazok, szerializálás) a `garden-logic.js`-ben él, tisztán függvényekkel, `window`/DOM hivatkozás nélkül — ezért ugyanaz a kód fut böngészőben (`GardenLogic` globálként) és Node-ban (`require('./garden-logic.js')`) is, build lépés nélkül. Az `index.html` inline scriptje csak a megjelenítést és az érintés-kezelést végzi, minden döntést a `GardenLogic` függvényeire bíz.
+
+**Rács és bejárat.** `GARDEN_COLS=10`, `GARDEN_ROWS=8`, a bejárat fixen alul középen (`GARDEN_ENTRANCE`). Minden konstans (rácsméret, árak, visszatérítési arány) a `garden-logic.js` tetején, egy helyen van, könnyen hangolhatóan.
+
+**Építőelemek és szabályok:**
+- **Út** (`GARDEN_COSTS.path`, alap 4 pont): csak szabad fűre rakható, ÉS csak akkor, ha a bejárathoz vagy egy már bejárattal összefüggő úthoz csatlakozik (`canPlacePathAt`, BFS-sel: `computeConnectedPathSet`).
+- **Kifutó** (`GARDEN_COSTS.enclosure`, alap 36 pont): 2×2-es blokk, csak feloldott jelvényű állathoz. Koppintáskor a legközelebbi ÉRVÉNYES 2×2-es helyre "mágnesezve" kerül le (`findBestEnclosurePlacement`), hogy a gyereknek ne kelljen a bal-felső sarkot eltalálnia. Feltétel: mind a 4 cella szabad fű, ÉS a blokk szomszédos egy összefüggő út-cellával vagy a bejárattal.
+- **Dísz** (`GARDEN_COSTS.decor`, alap 6 pont): bármelyik szabad fűre, adjacencia-feltétel nélkül. Típusok: fa/bokor/pad/szökőkút (`GARDEN_DECOR_TYPES` az index.html-ben).
+- **Bontás**: fél pont (`GARDEN_REFUND_RATE=0.5`) jár vissza. Kifutó/dísz bontása mindig megy; **út bontása csak akkor, ha ez nem szakítja meg más út-cellák vagy kifutók bejárattal való összefüggését** (`canRemovePathAt` — tentatív eltávolítás után újra BFS-el, és minden megmaradó út-cellát és kifutót leellenőriz). Ha blokkolva van, a UI barátságos üzenettel jelzi, MELYIK más részt kellene előbb lebontani.
+
+**Gazdaság: `state.points` (örökké növekvő, "összegyűjtött") vs. `state.gardenCoins` (elkölthető).** Minden pontszerzés KIZÁRÓLAG az `earnPoints(gain)` függvényen keresztül megy (nem közvetlen `state.points+=`), ami mindkét mezőt egyszerre növeli — így a kettő mindig szinkronban marad (`gardenCoins = pontok − eddig elköltött`). Építéskor/bontáskor csak `gardenCoins` változik, `state.points` soha nem csökken (ez marad az örök "eddig elért eredmény", amit a jelvény-folyamatjelző is használ). Régi mentéseknél (a funkció bevezetése előtti profiloknál) a `gardenCoins` a meglévő `state.points`-ból indul (lásd `load()`), hogy a korábban "megszolgált" építkezési keret ne vesszen el.
+
+**Állat-jelvény → kifutó-tereptárgy leképezés** (`ZOO_ANIMALS`/`ZOO_ANIMAL_MAP` az index.html-ben): minden állat-témájú jelvényhez tartozik egy fajra jellemző tereptárgy-emoji (pl. nyúl→🥕, elefánt→🪵, pingvin→🧊). A nem-állat jelvények (🚂 Mozdonyvezető, 🚉 Vasútmester) szándékosan KIMARADNAK a kifutó-választóból. Minden kifutó-dioráma (`buildEnclosureTile()`) 3 egymástól függetlenül mozgó (CSS `animation-delay` eltolással), a jelvény emojijával megegyező állatot, a fajhoz tartozó tereptárgyat, 1-2 fát, 1 bokrot és egy kis tavat tartalmaz — mind CSS transzformmal animálva (nincs folyamatos JS-layout), a teljesítmény kímélése miatt. Kifutóra koppintva (nézelődés módban) ugrás-animáció + szívecske jelenik meg (`animateEnclosureTap()`), és megszólal a meglévő `beep('good')` hang.
+
+**Csökkentett animáció.** A rendszer `prefers-reduced-motion`-je globálisan minden animációt kikapcsol (meglévő szabály a CSS tetején). Emellett a gyerek/szülő saját kapcsolóval is kikapcsolhatja csak a kifutó-állatok animációját (`state.gardenReducedMotion`, `toggleGardenMotion()`, `.garden-grid.reduced` osztály) — ez a rendszerbeállítástól függetlenül is elérhető, mert PWA-ban nem mindig kényelmes az iOS rendszerszintű beállítást keresgélni.
+
+**Perzisztencia és migrációbiztosság.** A teljes `garden` objektum (`{version,entrance,path,enclosures,decor}`) a meglévő progress-blobban utazik, séma-agnosztikus `save()`/`/api/progress.js`-en át — nem igényelt semmilyen backend-módosítást. Betöltéskor `GardenLogic.sanitizeGarden()` fut: hiányzó/sérült/hiányos mentésnél üres kertet ad vissza, kidobja a rácson kívüli vagy átfedő bejegyzéseket, és ITERATÍVAN levágja a bejárattól el nem érhető út-cellákat és az emiatt "elszigetelődő" kifutókat — így a mentés SOHA nem lehet érvénytelen állapotban, akkor sem, ha kézzel piszkálnák a KV-t.
+
+**Önteszt (`garden-selftest.js`, KÖTELEZŐ `garden-logic.js` módosítás után lefuttatni).** Node-dal, böngésző nélkül fut (`node garden-selftest.js`): 700 véletlen építési/bontási szekvenciát generál (változó kezdő egyenleggel, lépésenként apránként növekvő ponttal, mint élesben), és minden EGYES lépés után ellenőrzi: minden út összefügg a bejárattal; minden kifutó szabad volt lerakáskor és összefüggő út mellé került; nincs átfedés bejárat/út/kifutó/dísz között; az egyenleg sosem negatív; a `serializeGarden`→`deserializeGarden` kör-út ugyanazt az állapotot adja vissza. Ha bármelyik invariáns sérül, kilépőkóddal (`process.exit(1)`) és a hibás lépés pontos leírásával jelez.
 
 ## Mindig így
 
