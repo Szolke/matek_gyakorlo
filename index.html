@@ -256,15 +256,20 @@
   .heart-row{display:flex;gap:4px;font-size:19px;}
   .heart-row .heart{opacity:1;transition:opacity .2s ease;}
   .heart-row .heart.lost{opacity:.22;filter:grayscale(1);}
-  .train-track-wrap{overflow-x:auto;padding:10px 2px 16px;}
-  .train-track{display:flex;align-items:center;gap:6px;width:max-content;margin:0 auto;}
-  .loco{font-size:44px;flex-shrink:0;margin-right:2px;}
-  .wagon{width:58px;height:58px;flex-shrink:0;border-radius:14px;background:#fff;border:3px dashed #d9c9ad;
+  .train-track-wrap{overflow-x:auto;padding:10px 2px 26px;}
+  .train-track{display:flex;align-items:flex-end;gap:10px;width:max-content;margin:0 auto;}
+  .loco{font-size:44px;flex-shrink:0;margin-right:4px;margin-bottom:8px;}
+  .wagon{position:relative;width:52px;height:48px;flex-shrink:0;margin-bottom:14px;
+    border-radius:10px 10px 4px 4px;background:#fff;border:3px dashed #d9c9ad;
     display:flex;align-items:center;justify-content:center;font-weight:700;font-size:18px;color:var(--ink);}
+  .wagon::before,.wagon::after{content:"";position:absolute;bottom:-11px;width:13px;height:13px;
+    border-radius:50%;background:var(--ink-soft);border:2px solid var(--cream);}
+  .wagon::before{left:6px;}
+  .wagon::after{right:6px;}
   .wagon.active{border-style:solid;border-color:var(--train);animation:wagonPulse 1.2s ease-in-out infinite;}
   .wagon.filled{border-style:solid;border-color:#fff;background:var(--cream);color:var(--green-dark);}
   @keyframes wagonPulse{0%,100%{box-shadow:0 0 0 3px rgba(224,138,62,.25);}50%{box-shadow:0 0 0 6px rgba(224,138,62,.4);}}
-  .station{font-size:40px;flex-shrink:0;opacity:.35;filter:grayscale(1);transition:opacity .3s ease,filter .3s ease;margin-left:6px;}
+  .station{font-size:40px;flex-shrink:0;margin-bottom:8px;opacity:.35;filter:grayscale(1);transition:opacity .3s ease,filter .3s ease;margin-left:6px;}
   .train-track.arrived .station{opacity:1;filter:none;}
   .train-track.arrived{animation:trainArrive .7s ease;}
   @keyframes trainArrive{0%{transform:translateX(0);}30%{transform:translateX(-14px);}60%{transform:translateX(6px);}100%{transform:translateX(0);}}
