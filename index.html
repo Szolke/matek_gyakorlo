@@ -168,8 +168,9 @@
   .op-puzzle .emo{font-size:32px;}
   .op-sort{background:var(--cat);}
   .op-sort:active{background:var(--cat-dark);}
-  .op-train{background:var(--train);}
+  .op-train{background:var(--train);grid-column:1 / -1;flex-direction:row;justify-content:center;gap:12px;}
   .op-train:active{background:var(--train-dark);}
+  .op-train .emo{font-size:32px;}
 
   .op-wrap{display:flex;flex-direction:column;gap:6px;}
   .op-wrap.full{grid-column:1 / -1;}
