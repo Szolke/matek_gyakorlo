@@ -198,17 +198,69 @@
     font-family:inherit;font-weight:600;font-size:12px;color:var(--ink-soft);cursor:pointer;box-shadow:var(--shadow-soft);}
   .zoo-open-btn:active{transform:translateY(2px);}
 
-  /* ---------- ZOO ---------- */
+  /* ---------- ÁLLATKERT-ÉPÍTŐ ---------- */
   #zooScreen{display:none;}
-  .zoo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
-  .zoo-cell{border-radius:20px;overflow:hidden;box-shadow:var(--shadow-soft);border:4px solid #fff;
-    display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:104px;position:relative;
-    background:linear-gradient(180deg,var(--sky) 0%,var(--sky) 55%,var(--grass) 55%,var(--grass) 100%);}
-  .zoo-cell .animal{font-size:38px;margin-bottom:6px;filter:drop-shadow(0 2px 2px rgba(0,0,0,.15));}
-  .zoo-cell .zn{font-size:10px;line-height:1.15;font-weight:600;color:#fff;background:rgba(40,30,15,.35);
-    width:100%;text-align:center;padding:3px 2px;min-height:14px;}
-  .zoo-cell.empty{background:linear-gradient(180deg,#d7dde0 0%,#d7dde0 55%,#bcc6ca 55%,#bcc6ca 100%);}
-  .zoo-cell.empty .animal{opacity:.45;filter:grayscale(1);}
+  .garden-toolbar{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 8px;margin-bottom:2px;}
+  .garden-tool{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:2px;
+    background:#fff;border:3px solid #fff;border-radius:16px;padding:8px 12px;font-family:inherit;
+    cursor:pointer;box-shadow:var(--shadow-soft);color:var(--ink-soft);min-width:64px;}
+  .garden-tool .gt-emo{font-size:22px;line-height:1;}
+  .garden-tool .gt-nm{font-size:11px;font-weight:600;white-space:nowrap;}
+  .garden-tool .gt-cost{font-size:10px;color:var(--orange-dark);font-weight:700;}
+  .garden-tool.active{background:var(--green);color:#fff;}
+  .garden-tool.active .gt-cost{color:#fff;}
+  .garden-tool:active{transform:translateY(2px);}
+
+  .garden-subpanel{display:none;gap:8px;flex-wrap:wrap;justify-content:center;background:var(--cream);
+    border-radius:16px;padding:10px;margin-bottom:10px;box-shadow:var(--shadow-soft);border:3px solid #fff;}
+  .garden-animal-btn,.garden-decor-btn{border:3px solid #fff;background:#fff;border-radius:14px;
+    width:48px;height:48px;font-size:22px;display:flex;align-items:center;justify-content:center;
+    cursor:pointer;box-shadow:var(--shadow-soft);padding:0;}
+  .garden-animal-btn.selected,.garden-decor-btn.selected{background:var(--green);box-shadow:0 0 0 3px var(--green-dark) inset;}
+  .garden-animal-btn.locked{opacity:.5;cursor:default;}
+  .garden-animal-btn:active,.garden-decor-btn:active{transform:translateY(2px);}
+
+  .garden-wrap{background:#f3ead6;border-radius:20px;padding:8px;
+    box-shadow:var(--shadow-soft);border:4px solid #fff;margin-bottom:10px;}
+  .garden-grid{position:relative;display:grid;grid-template-columns:repeat(10,1fr);grid-template-rows:repeat(8,1fr);
+    gap:2px;aspect-ratio:10/8;width:100%;border-radius:12px;overflow:hidden;}
+  .garden-tile{position:relative;display:flex;align-items:center;justify-content:center;font-size:16px;
+    border-radius:4px;cursor:pointer;}
+  .garden-tile.grass{background:var(--grass);}
+  .garden-tile.path{background:#e6c98a;}
+  .garden-tile.entrance{background:#e6c98a;font-size:20px;cursor:default;}
+  .garden-tile.decor{background:var(--grass);font-size:18px;}
+  .garden-tile.preview{outline:2px dashed rgba(255,255,255,.95);outline-offset:-2px;}
+  .garden-tile.demolishable{outline:2px dashed #e0554c;outline-offset:-2px;}
+
+  .enclosure-tile{background:linear-gradient(180deg,#a9d98a,#8ed16a);border-radius:8px;
+    box-shadow:inset 0 0 0 3px rgba(122,82,48,.35);overflow:hidden;cursor:pointer;}
+  .enc-pond{position:absolute;right:6%;top:8%;width:24%;height:24%;background:#7fc7e8;border-radius:50%;
+    box-shadow:inset 0 -2px 4px rgba(0,0,0,.15);}
+  .enc-tree{position:absolute;font-size:15px;filter:drop-shadow(0 1px 1px rgba(0,0,0,.2));}
+  .enc-tree.t1{left:3%;top:3%;} .enc-tree.t2{right:5%;bottom:4%;}
+  .enc-bush{position:absolute;left:5%;bottom:5%;font-size:13px;}
+  .enc-prop{position:absolute;left:42%;top:2%;font-size:13px;}
+  .enc-animal{position:absolute;font-size:17px;}
+  .enc-animal.a1{left:18%;top:36%;animation:gWalk1 4.2s ease-in-out infinite;}
+  .enc-animal.a2{left:55%;top:54%;animation:gWalk2 5.1s ease-in-out infinite;}
+  .enc-animal.a3{left:36%;top:70%;animation:gWalk3 3.6s ease-in-out infinite;}
+  @keyframes gWalk1{0%,100%{transform:translate(0,0);}50%{transform:translate(9%,-6%);}}
+  @keyframes gWalk2{0%,100%{transform:translate(0,0);}50%{transform:translate(-11%,4%);}}
+  @keyframes gWalk3{0%,100%{transform:translate(0,0) scaleX(1);}49%{transform:translate(7%,3%) scaleX(1);}
+    50%{transform:translate(7%,3%) scaleX(-1);}99%{transform:translate(0,0) scaleX(-1);}100%{transform:translate(0,0) scaleX(1);}}
+  .eai{display:inline-block;}
+  .eai.jump{animation:gJumpBounce .5s ease;}
+  @keyframes gJumpBounce{0%,100%{transform:translateY(0) scale(1);}40%{transform:translateY(-6px) scale(1.15);}70%{transform:translateY(1px) scale(.95);}}
+  .enc-heart{position:absolute;left:50%;top:28%;transform:translateX(-50%);font-size:15px;
+    animation:gHeartPop .9s ease forwards;pointer-events:none;}
+  @keyframes gHeartPop{0%{opacity:0;transform:translate(-50%,6px) scale(.6);}
+    30%{opacity:1;transform:translate(-50%,-4px) scale(1.2);}100%{opacity:0;transform:translate(-50%,-22px) scale(1);}}
+  .garden-grid.reduced .enc-animal{animation:none;}
+
+  .garden-feedback{min-height:20px;text-align:center;font-weight:600;font-size:13px;margin-top:2px;}
+  .garden-feedback.good{color:var(--correct);}
+  .garden-feedback.retry{color:var(--amber);}
 
   /* ---------- KIRAKÓ ---------- */
   #puzzleScreen{display:none;}
@@ -350,7 +402,7 @@
 
   @media (prefers-reduced-motion: reduce){
     *{animation-duration:.001s !important;animation-iteration-count:1 !important;}
-    .cloud,.mascot,.modal-card .medal{animation:none !important;}
+    .cloud,.mascot,.modal-card .medal,.enc-animal{animation:none !important;}
   }
   @media (max-width:360px){
     .problem{font-size:44px;} .title-card h1{font-size:26px;} .badge .disc{width:54px;height:54px;font-size:28px;}
@@ -459,18 +511,26 @@
     <div class="badges" id="badgeGrid"></div>
   </div>
 
-  <!-- ============ ZOO ============ -->
+  <!-- ============ ÁLLATKERT-ÉPÍTŐ ============ -->
   <div id="zooScreen">
     <div class="top">
       <button class="back" onclick="goHome()">🏠</button>
+      <div class="stat pts">💰 <span id="gardenBalanceNum">0</span></div>
+      <div class="stat streak" style="color:var(--green-dark)">⭐ <span id="gardenTotalNum">0</span></div>
       <div class="spacer"></div>
+      <button class="snd" onclick="toggleGardenMotion()" id="gardenMotionBtn" title="Csökkentett animáció">🎬</button>
     </div>
-    <div class="title-card">
-      <div class="mascot">🦁</div>
-      <h1>Állatkertem</h1>
-      <p class="lvl">Minden megszerzett jelvény egy új állat a kertedben!</p>
+    <div class="title-card" style="padding:14px 16px 16px;">
+      <div class="mascot" style="font-size:38px;margin-top:0;">🦁</div>
+      <h1 style="font-size:22px;">Állatkertem</h1>
+      <p class="lvl">Építs utat, kifutót és díszeket a matekért kapott pontokból!</p>
     </div>
-    <div class="zoo-grid" id="zooGrid"></div>
+    <div class="daily-row" id="gardenDailyRow">🔥 <b id="gardenStreakNum">0</b> napos sorozat · Ma: <b id="gardenTodayNum">0</b>/10</div>
+
+    <div class="garden-toolbar" id="gardenToolbar"></div>
+    <div class="garden-subpanel" id="gardenSubpanel"></div>
+    <div class="garden-wrap"><div class="garden-grid" id="gardenGrid"></div></div>
+    <div class="garden-feedback" id="gardenFeedback"></div>
   </div>
 
   <!-- ============ KIRAKÓ ============ -->
@@ -676,6 +736,7 @@
   </div>
 </div>
 
+<script src="garden-logic.js"></script>
 <script>
 /* ---------------- Állapot ---------------- */
 function buildDefaultStats(){
@@ -704,7 +765,10 @@ const DEFAULT = {points:0, streak:0, bestStreak:0, totalCorrect:0,
   sortsSolved:0,
   sortPref:{table:'2'},
   sortStats: buildDefaultSortStats(),
-  trainsSolved:0};
+  trainsSolved:0,
+  garden: GardenLogic.createEmptyGarden(),
+  gardenCoins:0,
+  gardenReducedMotion:false};
 let state = JSON.parse(JSON.stringify(DEFAULT));
 
 const BADGES = [
@@ -906,6 +970,12 @@ async function load(){
       state.sortPref = Object.assign({table:'2'}, saved.sortPref||{});
       state.sortStats = mergeSortStats(saved.sortStats);
       state.trainsSolved = typeof saved.trainsSolved==='number' ? saved.trainsSolved : 0;
+      state.garden = GardenLogic.sanitizeGarden(saved.garden);
+      // Régi mentéseknél (a funkció bevezetése előtt) nincs külön elkölthető
+      // egyenleg — ilyenkor a már összegyűjtött pontból indítjuk, hogy a
+      // gyerek ne veszítse el a korábban "megszolgált" építkezési keretet.
+      state.gardenCoins = typeof saved.gardenCoins==='number' ? Math.max(0, saved.gardenCoins) : state.points;
+      state.gardenReducedMotion = typeof saved.gardenReducedMotion==='boolean' ? saved.gardenReducedMotion : false;
     }
   }catch(e){
     // Hálózati hiba esetén az alapállapottal indulunk, a játék így is működik.
@@ -916,6 +986,14 @@ async function load(){
 let current=null, typed='', attempts=0, locked=false, mode='add';
 
 function rnd(min,max){return Math.floor(Math.random()*(max-min+1))+min;}
+
+// Minden pontszerzés EZEN keresztül megy, hogy az Állatkert-építő elkölthető
+// egyenlege (state.gardenCoins) mindig szinkronban maradjon az örökké növekvő
+// "összegyűjtött" ponttal (state.points) — lásd CLAUDE.md "Állatkert-építő".
+function earnPoints(gain){
+  state.points += gain;
+  state.gardenCoins = (state.gardenCoins||0) + gain;
+}
 
 /* ---- Kategóriák és súlyozott feladatválasztás ---- */
 const TABLE_SUFFIX = {1:'1-es',2:'2-es',3:'3-as',4:'4-es',5:'5-ös',6:'6-os',7:'7-es',8:'8-as',9:'9-es',10:'10-es'};
@@ -1025,19 +1103,296 @@ function goZoo(){
   document.getElementById('home').style.display='none';
   document.getElementById('zooScreen').style.display='block';
   window.scrollTo(0,0);
-  renderZoo();
+  renderGarden();
 }
-function renderZoo(){
-  const grid = document.getElementById('zooGrid');
-  grid.innerHTML = '';
-  for(const b of BADGES){
-    const on = !!state.badges[b.id];
-    const cell = document.createElement('div');
-    cell.className = 'zoo-cell ' + (on ? 'on' : 'empty');
-    cell.innerHTML = '<div class="animal">'+(on ? b.emoji : '❓')+'</div><div class="zn">'+(on ? b.name : 'Üres kifutó')+'</div>';
-    cell.title = on ? (b.name+' — '+b.desc) : ('Szerezd meg: '+b.desc);
-    grid.appendChild(cell);
+
+/* ---------------- Állatkert-építő ---------------- */
+// Felülnézetes, rács-alapú építő: a gyerek a matekért kapott pontokból utat,
+// állat-kifutókat és díszeket rakhat le. A rács-logika (BFS-összefüggőség,
+// lerakás/bontás szabályai, előnézet-halmazok) teljesen DOM-mentesen, a
+// garden-logic.js-ben él (GardenLogic), Node-dal is önteszthető — lásd
+// garden-selftest.js és a CLAUDE.md "Állatkert-építő" szakaszát. Ez a rész
+// csak a megjelenítést és az érintés-kezelést végzi.
+const GARDEN_TOOLS = [
+  {id:'view',      label:'Nézelődés', emoji:'👀'},
+  {id:'path',      label:'Út',        emoji:'🛤️', cost:GardenLogic.GARDEN_COSTS.path},
+  {id:'enclosure', label:'Kifutó',    emoji:'🏠', cost:GardenLogic.GARDEN_COSTS.enclosure},
+  {id:'decor',     label:'Dísz',      emoji:'🌳', cost:GardenLogic.GARDEN_COSTS.decor},
+  {id:'demolish',  label:'Bontás',    emoji:'🔨'}
+];
+// Minden állat-jelvényhez tartozik egy kifutó-tereptárgy; a nem-állat
+// jelvényeket (🚂 Mozdonyvezető, 🚉 Vasútmester) szándékosan kihagytuk innen.
+const ZOO_ANIMALS = [
+  {id:'start',       emoji:'🐣', name:'Csibe',      prop:'🥚'},
+  {id:'turtle',      emoji:'🐢', name:'Teknős',     prop:'🍃'},
+  {id:'bunny',       emoji:'🐰', name:'Nyuszi',     prop:'🥕'},
+  {id:'koala',       emoji:'🐨', name:'Koala',      prop:'🌿'},
+  {id:'fox',         emoji:'🦊', name:'Róka',       prop:'🍂'},
+  {id:'add25',       emoji:'🐘', name:'Elefánt',    prop:'🪵'},
+  {id:'sub25',       emoji:'🦒', name:'Zsiráf',     prop:'🌳'},
+  {id:'penguin',     emoji:'🐧', name:'Pingvin',    prop:'🧊'},
+  {id:'mul25',       emoji:'🐆', name:'Gepárd',     prop:'🪨'},
+  {id:'div25',       emoji:'🦓', name:'Zebra',      prop:'🌾'},
+  {id:'streak10',    emoji:'🦩', name:'Flamingó',   prop:'🪷'},
+  {id:'lion',        emoji:'🦁', name:'Oroszlán',   prop:'🪨'},
+  {id:'panda',       emoji:'🐼', name:'Panda',      prop:'🎋'},
+  {id:'unicorn',     emoji:'🦄', name:'Egyszarvú',  prop:'🌈'},
+  {id:'owl',         emoji:'🦉', name:'Bagoly',     prop:'🌲'},
+  {id:'hedgehog',    emoji:'🦔', name:'Sün',        prop:'🍄'},
+  {id:'caterpillar', emoji:'🐛', name:'Hernyó',     prop:'🍃'},
+  {id:'butterfly',   emoji:'🦋', name:'Pillangó',   prop:'🌺'}
+];
+const ZOO_ANIMAL_MAP = {};
+for(const a of ZOO_ANIMALS){
+  const badge = BADGES.find(b=>b.id===a.id);
+  ZOO_ANIMAL_MAP[a.id] = Object.assign({desc:badge?badge.desc:''}, a);
+}
+const GARDEN_DECOR_TYPES = [
+  {id:'tree',     emoji:'🌳', name:'Fa'},
+  {id:'bush',     emoji:'🌿', name:'Bokor'},
+  {id:'bench',    emoji:'🪑', name:'Pad'},
+  {id:'fountain', emoji:'⛲', name:'Szökőkút'}
+];
+const GARDEN_DECOR_MAP = {};
+for(const d of GARDEN_DECOR_TYPES) GARDEN_DECOR_MAP[d.id] = d;
+
+let gardenTool = 'view';
+let gardenSelectedAnimal = null;
+let gardenSelectedDecor = null;
+
+function setGardenTool(id){
+  gardenTool = id;
+  if(id !== 'enclosure') gardenSelectedAnimal = null;
+  if(id !== 'decor') gardenSelectedDecor = null;
+  flashGardenFeedback('','');
+  renderGarden();
+}
+
+function flashGardenFeedback(msg, type){
+  const fb = document.getElementById('gardenFeedback');
+  fb.textContent = msg; fb.className = 'garden-feedback ' + (type||'');
+}
+
+function toggleGardenMotion(){
+  state.gardenReducedMotion = !state.gardenReducedMotion;
+  document.getElementById('gardenMotionBtn').textContent = state.gardenReducedMotion ? '🐢' : '🎬';
+  save();
+  renderGarden();
+}
+
+function doPlacePath(r,c){
+  const occ = GardenLogic.occupancyMap(state.garden);
+  if(occ.has(GardenLogic.keyOf(r,c))){ flashGardenFeedback('Ez a hely már foglalt! 🙂','retry'); return; }
+  const res = GardenLogic.placePath(state.garden, state.gardenCoins, r, c);
+  if(!res.ok){
+    flashGardenFeedback(res.reason==='funds' ? 'Nincs elég pontod ehhez! 💰' : 'Ide még nincs bekötve az út — koppints egy szomszédos mezőre! 🙂','retry');
+    return;
   }
+  state.gardenCoins = res.coins;
+  flashGardenFeedback('Út lerakva! 🛤️','good');
+  beep('good');
+  save();
+  renderGarden();
+}
+
+function doPlaceEnclosure(r,c){
+  if(!gardenSelectedAnimal){ flashGardenFeedback('Először válassz állatot ide lent! 🐾','retry'); return; }
+  if(!state.badges[gardenSelectedAnimal]){ flashGardenFeedback('Ezt az állatot még nem oldottad fel! 🔒','retry'); return; }
+  const res = GardenLogic.placeEnclosure(state.garden, state.gardenCoins, r, c, gardenSelectedAnimal);
+  if(!res.ok){
+    flashGardenFeedback(res.reason==='funds' ? 'Nincs elég pontod ehhez! 💰' : 'Ide nem fér kifutó — kell hozzá szabad hely út mellett. 🙂','retry');
+    return;
+  }
+  state.gardenCoins = res.coins;
+  flashGardenFeedback('Új kifutó épült! 🎉','good');
+  confetti();
+  beep('good');
+  save();
+  renderGarden();
+}
+
+function doPlaceDecor(r,c){
+  if(!gardenSelectedDecor){ flashGardenFeedback('Először válassz díszt ide lent! 🌳','retry'); return; }
+  const occ = GardenLogic.occupancyMap(state.garden);
+  if(occ.has(GardenLogic.keyOf(r,c))){ flashGardenFeedback('Ez a hely már foglalt! 🙂','retry'); return; }
+  const res = GardenLogic.placeDecor(state.garden, state.gardenCoins, r, c, gardenSelectedDecor);
+  if(!res.ok){
+    flashGardenFeedback(res.reason==='funds' ? 'Nincs elég pontod ehhez! 💰' : 'Ide nem lehet díszt tenni. 🙂','retry');
+    return;
+  }
+  state.gardenCoins = res.coins;
+  flashGardenFeedback('Dísz lerakva! 🌿','good');
+  beep('good');
+  save();
+  renderGarden();
+}
+
+function doDemolish(r,c){
+  const occ = GardenLogic.occupancyMap(state.garden);
+  const info = occ.get(GardenLogic.keyOf(r,c));
+  if(!info || info.type==='entrance'){ flashGardenFeedback('Ezt nem lehet lebontani. 🙂','retry'); return; }
+  let res;
+  if(info.type==='path') res = GardenLogic.removePathAt(state.garden, state.gardenCoins, r, c);
+  else if(info.type==='enclosure') res = GardenLogic.removeEnclosureAt(state.garden, state.gardenCoins, info.enclosure.r, info.enclosure.c);
+  else res = GardenLogic.removeDecorAt(state.garden, state.gardenCoins, r, c);
+  if(!res.ok){
+    flashGardenFeedback(res.reason==='blocked' ? 'Ez az út tart össze más részeket — előbb azokat bontsd le! 🙂' : 'Ezt most nem lehet lebontani.','retry');
+    return;
+  }
+  state.gardenCoins = res.coins;
+  flashGardenFeedback('Lebontva — fél pontot visszakaptál. ♻️','good');
+  save();
+  renderGarden();
+}
+
+function animateEnclosureTap(e){
+  const tileEl = document.querySelector('.enclosure-tile[data-enc="'+GardenLogic.keyOf(e.r,e.c)+'"]');
+  if(tileEl){
+    tileEl.querySelectorAll('.eai').forEach(el=>{
+      el.classList.remove('jump'); void el.offsetWidth; el.classList.add('jump');
+    });
+    const heart = document.createElement('div');
+    heart.className = 'enc-heart';
+    heart.textContent = '💗';
+    tileEl.appendChild(heart);
+    setTimeout(()=>heart.remove(), 900);
+  }
+  beep('good');
+}
+
+function onTapGardenCell(r,c){
+  if(gardenTool==='view'){
+    const occ = GardenLogic.occupancyMap(state.garden);
+    const info = occ.get(GardenLogic.keyOf(r,c));
+    if(info && info.type==='enclosure') animateEnclosureTap(info.enclosure);
+    return;
+  }
+  if(gardenTool==='path') doPlacePath(r,c);
+  else if(gardenTool==='enclosure') doPlaceEnclosure(r,c);
+  else if(gardenTool==='decor') doPlaceDecor(r,c);
+  else if(gardenTool==='demolish') doDemolish(r,c);
+}
+
+function buildEnclosureTile(e){
+  const info = ZOO_ANIMAL_MAP[e.animal] || {emoji:'❓', prop:'🌳'};
+  const tile = document.createElement('div');
+  tile.className = 'garden-tile enclosure-tile' + (gardenTool==='demolish' ? ' demolishable' : '');
+  tile.dataset.enc = GardenLogic.keyOf(e.r,e.c);
+  const seed = e.r*GardenLogic.GARDEN_COLS + e.c;
+  tile.innerHTML =
+    '<div class="enc-pond"></div>' +
+    '<div class="enc-tree t1">🌳</div>' +
+    (seed % 2 === 0 ? '<div class="enc-tree t2">🌳</div>' : '') +
+    '<div class="enc-bush">🌿</div>' +
+    '<div class="enc-prop">'+info.prop+'</div>' +
+    '<div class="enc-animal a1"><span class="eai" style="animation-delay:-'+((seed%5)*0.6)+'s">'+info.emoji+'</span></div>' +
+    '<div class="enc-animal a2"><span class="eai" style="animation-delay:-'+((seed%7)*0.4)+'s">'+info.emoji+'</span></div>' +
+    '<div class="enc-animal a3"><span class="eai" style="animation-delay:-'+((seed%3)*0.7)+'s">'+info.emoji+'</span></div>';
+  tile.onclick = ()=>onTapGardenCell(e.r, e.c);
+  return tile;
+}
+
+function renderGardenToolbar(){
+  const bar = document.getElementById('gardenToolbar');
+  bar.innerHTML = '';
+  for(const t of GARDEN_TOOLS){
+    const btn = document.createElement('button');
+    btn.className = 'garden-tool' + (gardenTool===t.id ? ' active' : '');
+    btn.innerHTML = '<span class="gt-emo">'+t.emoji+'</span><span class="gt-nm">'+t.label+'</span>' +
+      (t.cost ? '<span class="gt-cost">'+t.cost+' 💰</span>' : '');
+    btn.onclick = ()=>setGardenTool(t.id);
+    bar.appendChild(btn);
+  }
+}
+
+function renderGardenSubpanel(){
+  const panel = document.getElementById('gardenSubpanel');
+  panel.innerHTML = '';
+  if(gardenTool==='enclosure'){
+    panel.style.display = 'flex';
+    for(const a of ZOO_ANIMALS){
+      const unlocked = !!state.badges[a.id];
+      const btn = document.createElement('button');
+      btn.className = 'garden-animal-btn' + (gardenSelectedAnimal===a.id ? ' selected' : '') + (unlocked ? '' : ' locked');
+      btn.textContent = unlocked ? a.emoji : '🔒';
+      btn.title = unlocked ? a.name : ('Oldd fel: '+ZOO_ANIMAL_MAP[a.id].desc);
+      btn.onclick = ()=>{ if(unlocked){ gardenSelectedAnimal = a.id; renderGarden(); } };
+      panel.appendChild(btn);
+    }
+  } else if(gardenTool==='decor'){
+    panel.style.display = 'flex';
+    for(const d of GARDEN_DECOR_TYPES){
+      const btn = document.createElement('button');
+      btn.className = 'garden-decor-btn' + (gardenSelectedDecor===d.id ? ' selected' : '');
+      btn.textContent = d.emoji;
+      btn.title = d.name;
+      btn.onclick = ()=>{ gardenSelectedDecor = d.id; renderGarden(); };
+      panel.appendChild(btn);
+    }
+  } else {
+    panel.style.display = 'none';
+  }
+}
+
+function renderGardenGrid(){
+  const gridEl = document.getElementById('gardenGrid');
+  gridEl.classList.toggle('reduced', !!state.gardenReducedMotion);
+  gridEl.innerHTML = '';
+
+  const g = state.garden;
+  const occ = GardenLogic.occupancyMap(g);
+
+  let previewSet = null;
+  if(gardenTool==='path') previewSet = GardenLogic.getPathPreviewSet(g);
+  else if(gardenTool==='enclosure' && gardenSelectedAnimal) previewSet = GardenLogic.getEnclosurePreviewSet(g);
+  else if(gardenTool==='decor' && gardenSelectedDecor) previewSet = GardenLogic.getDecorPreviewSet(g);
+
+  const renderedEnclosures = new Set();
+
+  for(let r=0; r<GardenLogic.GARDEN_ROWS; r++){
+    for(let c=0; c<GardenLogic.GARDEN_COLS; c++){
+      const key = GardenLogic.keyOf(r,c);
+      const info = occ.get(key);
+
+      if(info && info.type==='enclosure'){
+        const e = info.enclosure;
+        const ek = GardenLogic.keyOf(e.r,e.c);
+        if(renderedEnclosures.has(ek)) continue;
+        renderedEnclosures.add(ek);
+        const tile = buildEnclosureTile(e);
+        tile.style.gridColumn = (e.c+1) + ' / span 2';
+        tile.style.gridRow = (e.r+1) + ' / span 2';
+        gridEl.appendChild(tile);
+        continue;
+      }
+
+      const tile = document.createElement('div');
+      tile.style.gridColumn = (c+1) + ' / span 1';
+      tile.style.gridRow = (r+1) + ' / span 1';
+      let cls = 'garden-tile';
+      if(info && info.type==='entrance'){ cls += ' entrance'; tile.textContent = '🚪'; }
+      else if(info && info.type==='path'){ cls += ' path'; }
+      else if(info && info.type==='decor'){ cls += ' decor'; tile.textContent = GARDEN_DECOR_MAP[info.decor.type].emoji; }
+      else { cls += ' grass'; }
+      if(gardenTool==='demolish'){ if(info && info.type!=='entrance') cls += ' demolishable'; }
+      else if(previewSet && previewSet.has(key) && !info) cls += ' preview';
+      tile.className = cls;
+      tile.onclick = ()=>onTapGardenCell(r,c);
+      gridEl.appendChild(tile);
+    }
+  }
+}
+
+function renderGarden(){
+  rolloverDaily();
+  document.getElementById('gardenBalanceNum').textContent = state.gardenCoins;
+  document.getElementById('gardenTotalNum').textContent = state.points;
+  document.getElementById('gardenStreakNum').textContent = state.daily.streak;
+  document.getElementById('gardenTodayNum').textContent = Math.min(state.daily.correctToday, DAILY_GOAL);
+  document.getElementById('gardenMotionBtn').textContent = state.gardenReducedMotion ? '🐢' : '🎬';
+  renderGardenToolbar();
+  renderGardenSubpanel();
+  renderGardenGrid();
 }
 
 /* ---------------- Szülői nézet ---------------- */
@@ -1542,7 +1897,7 @@ function checkPuzzleComplete(){
 
 function puzzleWin(){
   const gain = PUZZLE_LEVELS[puzzle.level].reward;
-  state.points += gain;
+  earnPoints(gain);
   state.puzzlesSolved = (state.puzzlesSolved||0) + 1;
   flashPuzzleFeedback('Szuper, minden egyenlet igaz! 🎉','good');
   floatPoints('+'+gain);
@@ -1688,7 +2043,7 @@ function onTapSortChip(idx){
 }
 
 function sortWin(){
-  state.points += SORT_REWARD;
+  earnPoints(SORT_REWARD);
   state.sortsSolved = (state.sortsSolved||0) + 1;
   rolloverDaily();
   state.daily.correctToday++;
@@ -1868,7 +2223,7 @@ function trainWin(){
   trainState.done = true;
   renderTrain();
   document.getElementById('trainTrack').classList.add('arrived');
-  state.points += TRAIN_REWARD;
+  earnPoints(TRAIN_REWARD);
   state.trainsSolved = (state.trainsSolved||0) + 1;
   rolloverDaily();
   state.daily.correctToday++;
@@ -1952,7 +2307,7 @@ function correct(){
     dailyGoalJustMet = true;
   }
   let gain=10; if(state.streak>0 && state.streak%5===0) gain+=10; // sorozat bónusz
-  state.points+=gain;
+  earnPoints(gain);
 
   const praise=['Szuper! 🎉','Nagyszerű! 🌟','Ügyes vagy! 👏','Bravó! 🥳','Kiváló! 💫','Zseniális! ✨'];
   flashFeedback(praise[rnd(0,praise.length-1)],'good');
