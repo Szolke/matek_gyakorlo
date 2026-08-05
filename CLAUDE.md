@@ -38,12 +38,17 @@ Sima HTML/CSS/JS, nincs keretrendszer, nincs build lépés, nincs npm/package.js
 - Szülői nézet kapukódja: "Mennyi 7×8?" → 56 (`checkParentGate()` az index.html-ben).
 - Új mezők betöltésekor mindig legyen alapérték régi mentésekhez (lásd `mergeStats`, `load()`).
 - `puzzlesSolved` (szám), `puzzlePref.difficulty` (`'easy'|'medium'|'hard'`) — Matek-kirakó mód.
+- `sortsSolved` (szám), `sortPref.table` (`'1'..'10'`) — Hernyó-sorakozó mód.
 
 ## Matek-kirakó (matek-keresztrejtvény mód)
 
 **v2 (jelenlegi):** szabálytalan, elágazó egyenlet-fa. Sok kis háromtagú egyenlet (`a op b = c`, `+/−/×/÷`) kapcsolódik közös cellákon, vízszintes/függőleges "karokkal" (`buildEquationTree()` az index.html-ben). A szerkezet mindig **körmentes (fa)**: minden új egyenlet pontosan EGY meglévő cellán csatlakozik, a másik két cellája szabad — ezért a feltöltés tisztán konstruktív (a közös cella értéke már ismert, csak a másik két számot/a műveletet kell megválasztani, lásd `tryConstructEquation()`), nincs globális visszalépés, csak egy mindig működő +/− tartalék (`tryAttachUniversalFallback()`). Emiatt fér bele a × és ÷ is — a v1-es szabályos 3×3 rácsnál (lásd lentebb) ez nem ment volna megbízhatóan. `PUZZLE_LEVELS.maxSpan` egy "puha" méretkorlát (9/11/13 cella), hogy a forma jellemzően kompakt maradjon iPadon; ritka, nagyon elágazó esetben a rács vízszintesen görgethető.
 
 **v1 (lecserélve, csak történeti jegyzetként):** szabályos 3×3 rács volt, ahol minden SOR egy közös műveletet, minden OSZLOP egy másikat használt. Ott a × azért nem fért bele: a "sarok" cellának két irányból (sor és oszlop felől is) pontosan ugyanazt kellett volna adnia, ami ×-nél csak elvétve jött volna ki a 100-as korláton belül. Ha valaha vissza kellene állítani, ez a korlátozás ugyanúgy fennáll.
+
+## Hernyó-sorakozó (szorzótábla sorbarakó mód)
+
+A gyerek kiválaszt egy szorzótáblát (1–10), megkapja a tábla 10 szorzatát (`table*1..table*10`) összekeverve, és KOPPINTÁSSAL, növekvő sorrendben kell kijelölnie őket (mindig a soron következő legkisebb hátralévő számra kell koppintani — nincs drag & drop, mert az iPad mini-n megbízhatóbb). `buildSortPuzzle()`/`onTapSortChip()` az index.html-ben. Legfeljebb 4 hiba engedélyezett (`sortState.mistakes`, jelezve 4 db 🐾 ikonnal); az 5. hibánál a feladat újraindul (`setTimeout`-tal új keverés ugyanazzal a táblával, hibaszámláló nullázódik) — pont csakis a hiba nélküli vagy legfeljebb 4 hibás teljesítésért jár (`sortWin()`, fix `SORT_REWARD`). Mivel egy tábla mind a 10 szorzata (1-10-szeres) különböző, nincs szükség duplikátum-kezelésre az egyeztetésnél. A találatok/hibák a meglévő `stats.mulN` kategóriákba íródnak (csak 2–10-es táblánál — az 1-es táblának nincs saját kategóriája, ott csak pont/napi cél jár, statisztika nem), így a szülői nézet és a súlyozott feladatválasztás is látja őket. Sikeres teljesítés a napi cél számlálóját is növeli (`daily.correctToday++`), akárcsak egy helyes válasz a hagyományos módokban. Jelvények: 🐛 (1. megoldás), 🦋 (10. megoldás) — a hernyó-pillangó pár szándékosan utal az átalakulásra.
 
 ## Mindig így
 
