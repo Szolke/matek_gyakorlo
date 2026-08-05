@@ -36,6 +36,8 @@
     --amber:#f6a623;
     --teal:#2ab7ab;
     --teal-dark:#1f9a90;
+    --cat:#8bc34a;
+    --cat-dark:#6b9c34;
     --shadow:0 8px 0 rgba(0,0,0,.12);
     --shadow-soft:0 10px 24px rgba(74,52,20,.14);
   }
@@ -162,6 +164,8 @@
   .op-puzzle{background:var(--teal);grid-column:1 / -1;flex-direction:row;justify-content:center;gap:12px;}
   .op-puzzle:active{background:var(--teal-dark);}
   .op-puzzle .emo{font-size:32px;}
+  .op-sort{background:var(--cat);}
+  .op-sort:active{background:var(--cat-dark);}
 
   .op-wrap{display:flex;flex-direction:column;gap:6px;}
   .op-wrap.full{grid-column:1 / -1;}
@@ -220,6 +224,22 @@
     display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .08s ease;}
   .pz-chip.selected{background:var(--green);color:#fff;transform:translateY(-4px);box-shadow:0 6px 0 rgba(0,0,0,.12);}
   .pz-chip.used{visibility:hidden;}
+
+  /* ---------- HERNYÓ-SORAKOZÓ ---------- */
+  #sortScreen{display:none;}
+  .paw-row{display:flex;gap:4px;font-size:19px;}
+  .paw-row .paw{opacity:1;transition:opacity .2s ease;}
+  .paw-row .paw.used{opacity:.22;filter:grayscale(1);}
+  .sort-slots{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;max-width:340px;margin:0 auto 16px;}
+  .sort-slot{aspect-ratio:1;display:flex;align-items:center;justify-content:center;border-radius:14px;
+    font-weight:700;font-size:19px;background:#fff;border:3px dashed #d9c9ad;color:#c9b89c;}
+  .sort-slot.filled{border-style:solid;border-color:#fff;background:var(--cream);color:var(--green-dark);}
+  .sort-pool{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:6px;min-height:56px;}
+  .sort-chip{min-width:56px;height:56px;padding:0 10px;border-radius:16px;background:#fff;border:3px solid #fff;
+    box-shadow:var(--shadow-soft);font-weight:700;font-size:22px;color:var(--ink);
+    display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .08s ease;}
+  .sort-chip.used{visibility:hidden;}
+  .sort-chip.wrong{animation:shake .4s ease;}
 
   /* ---------- PLAY ---------- */
   #play{display:none;}
@@ -388,6 +408,16 @@
           <option value="hard">Haladó</option>
         </select>
       </div>
+      <div class="op-wrap full">
+        <button class="op-btn op-sort" onclick="startSort()">
+          <span class="emo">🐛</span><span class="nm">Hernyó-sorakozó</span></button>
+        <select class="table-sel" id="sortTableSel" onchange="setSortTable(this.value)" onclick="event.stopPropagation()">
+          <option value="1">1-es</option><option value="2">2-es</option><option value="3">3-as</option>
+          <option value="4">4-es</option><option value="5">5-ös</option><option value="6">6-os</option>
+          <option value="7">7-es</option><option value="8">8-as</option><option value="9">9-es</option>
+          <option value="10">10-es</option>
+        </select>
+      </div>
     </div>
 
     <div class="section-h"><span style="flex:1;">🏅 Jelvényeid</span><button class="zoo-open-btn" onclick="goZoo()">🦁 Állatkertem</button></div>
@@ -421,6 +451,23 @@
       <div class="pz-grid-wrap"><div class="pz-grid" id="pzGrid"></div></div>
       <div class="feedback" id="pzFeedback"></div>
       <div class="pz-pool" id="pzPool"></div>
+    </div>
+  </div>
+
+  <!-- ============ HERNYÓ-SORAKOZÓ ============ -->
+  <div id="sortScreen">
+    <div class="top">
+      <button class="back" onclick="goHome()">🏠</button>
+      <div class="paw-row" id="pawRow"></div>
+      <div class="spacer"></div>
+      <button class="snd" onclick="startSort()" title="Új keverés">🔄</button>
+    </div>
+    <div class="problem-card">
+      <div class="guide">🐛</div>
+      <div class="pz-instr" id="sortInstr">Kopints sorban a legkisebbtől a legnagyobbig!</div>
+      <div class="sort-slots" id="sortSlots"></div>
+      <div class="feedback" id="sortFeedback"></div>
+      <div class="sort-pool" id="sortPool"></div>
     </div>
   </div>
 
@@ -562,7 +609,9 @@ const DEFAULT = {points:0, streak:0, bestStreak:0, totalCorrect:0,
   daily:{date:'', correctToday:0, streak:0, goalMetToday:false},
   dailyHistory:{},
   puzzlesSolved:0,
-  puzzlePref:{difficulty:'easy'}};
+  puzzlePref:{difficulty:'easy'},
+  sortsSolved:0,
+  sortPref:{table:'2'}};
 let state = JSON.parse(JSON.stringify(DEFAULT));
 
 const BADGES = [
@@ -582,6 +631,8 @@ const BADGES = [
   {id:'unicorn', emoji:'🦄', name:'Matek-varázsló',    desc:'2000 pont',               ok:s=>s.points>=2000},
   {id:'owl',     emoji:'🦉', name:'Kirakó-bagoly',     desc:'Első Matek-kirakó megoldva', ok:s=>(s.puzzlesSolved||0)>=1},
   {id:'hedgehog',emoji:'🦔', name:'Kirakó-mester',     desc:'10 Matek-kirakó megoldva',   ok:s=>(s.puzzlesSolved||0)>=10},
+  {id:'caterpillar', emoji:'🐛', name:'Sorakozó hernyó', desc:'Első Hernyó-sorakozó megoldva', ok:s=>(s.sortsSolved||0)>=1},
+  {id:'butterfly',   emoji:'🦋', name:'Számpillangó',    desc:'10 Hernyó-sorakozó megoldva',   ok:s=>(s.sortsSolved||0)>=10},
 ];
 // pont-alapú jelvények a folyamatjelzőhöz
 const POINT_GOALS = [50,150,300,500,750,1000,2000];
@@ -744,6 +795,8 @@ async function load(){
       state.dailyHistory = (saved.dailyHistory && typeof saved.dailyHistory==='object') ? saved.dailyHistory : {};
       state.puzzlesSolved = typeof saved.puzzlesSolved==='number' ? saved.puzzlesSolved : 0;
       state.puzzlePref = Object.assign({difficulty:'easy'}, saved.puzzlePref||{});
+      state.sortsSolved = typeof saved.sortsSolved==='number' ? saved.sortsSolved : 0;
+      state.sortPref = Object.assign({table:'2'}, saved.sortPref||{});
     }
   }catch(e){
     // Hálózati hiba esetén az alapállapottal indulunk, a játék így is működik.
@@ -756,7 +809,7 @@ let current=null, typed='', attempts=0, locked=false, mode='add';
 function rnd(min,max){return Math.floor(Math.random()*(max-min+1))+min;}
 
 /* ---- Kategóriák és súlyozott feladatválasztás ---- */
-const TABLE_SUFFIX = {2:'2-es',3:'3-as',4:'4-es',5:'5-ös',6:'6-os',7:'7-es',8:'8-as',9:'9-es',10:'10-es'};
+const TABLE_SUFFIX = {1:'1-es',2:'2-es',3:'3-as',4:'4-es',5:'5-ös',6:'6-os',7:'7-es',8:'8-as',9:'9-es',10:'10-es'};
 const CATEGORY_LABELS = (function(){
   const m = {
     add_nocarry:'Összeadás (átlépés nélkül)', add_carry:'Összeadás (tízesátlépéssel)',
@@ -851,6 +904,7 @@ function goHome(){
   document.getElementById('zooScreen').style.display='none';
   document.getElementById('parentScreen').style.display='none';
   document.getElementById('puzzleScreen').style.display='none';
+  document.getElementById('sortScreen').style.display='none';
   document.getElementById('home').style.display='block';
   window.scrollTo(0,0);
   renderHome();
@@ -1246,6 +1300,7 @@ function startPuzzle(){
   document.getElementById('zooScreen').style.display='none';
   document.getElementById('parentScreen').style.display='none';
   document.getElementById('play').style.display='none';
+  document.getElementById('sortScreen').style.display='none';
   document.getElementById('puzzleScreen').style.display='block';
   window.scrollTo(0,0);
   puzzle = generatePuzzle(state.puzzlePref.difficulty);
@@ -1362,6 +1417,161 @@ function puzzleWin(){
   save();
   setTimeout(()=>{
     if(newBadges.length){ afterBadgeClose = ()=>{}; showBadge(newBadges[0]); }
+  }, 700);
+}
+
+/* ---------------- Hernyó-sorakozó ---------------- */
+// A gyerek egy kiválasztott szorzótábla (1-10) 10 szorzatát kapja
+// összekeverve, és növekvő sorrendben kell rájuk koppintania (mindig a
+// legkisebb még hátralévő számra). Legfeljebb 4 hiba engedélyezett — az
+// 5. hibánál a feladat újraindul (új keverés, hibaszámláló nullázódik),
+// és csak <5 hibával teljesített sor ér pontot.
+const SORT_REWARD = 30;
+let sortState = null;
+
+function buildSortPuzzle(table){
+  const target = [];
+  for(let k=1;k<=10;k++) target.push(table*k);
+  const pool = shufflePuzzleArray(target.slice()).map(v=>({value:v, used:false}));
+  return {table, target, pool, slots:new Array(10).fill(null), expectedIndex:0, mistakes:0};
+}
+
+function setSortTable(val){
+  state.sortPref.table = val;
+  save();
+}
+
+function startSort(){
+  document.getElementById('home').style.display='none';
+  document.getElementById('zooScreen').style.display='none';
+  document.getElementById('parentScreen').style.display='none';
+  document.getElementById('play').style.display='none';
+  document.getElementById('puzzleScreen').style.display='none';
+  document.getElementById('sortScreen').style.display='block';
+  window.scrollTo(0,0);
+  const table = parseInt(state.sortPref.table,10) || 2;
+  sortState = buildSortPuzzle(table);
+  flashSortFeedback('','');
+  renderSort();
+}
+
+function renderSort(){
+  document.getElementById('sortInstr').textContent =
+    'Rakd növekvő sorrendbe a(z) '+TABLE_SUFFIX[sortState.table]+' szorzótábla eredményeit!';
+
+  const slotsEl = document.getElementById('sortSlots');
+  slotsEl.innerHTML = '';
+  sortState.slots.forEach(val=>{
+    const cell = document.createElement('div');
+    cell.className = 'sort-slot' + (val==null ? '' : ' filled');
+    cell.textContent = val==null ? '' : val;
+    slotsEl.appendChild(cell);
+  });
+
+  const poolEl = document.getElementById('sortPool');
+  poolEl.innerHTML = '';
+  sortState.pool.forEach((entry, idx)=>{
+    const chip = document.createElement('div');
+    chip.className = 'sort-chip' + (entry.used ? ' used' : '');
+    chip.textContent = entry.value;
+    chip.onclick = ()=>onTapSortChip(idx);
+    poolEl.appendChild(chip);
+  });
+
+  const pawRow = document.getElementById('pawRow');
+  pawRow.innerHTML = '';
+  for(let i=0;i<4;i++){
+    const paw = document.createElement('span');
+    paw.className = 'paw' + (i<sortState.mistakes ? ' used' : '');
+    paw.textContent = '🐾';
+    pawRow.appendChild(paw);
+  }
+}
+
+function flashSortFeedback(msg, type){
+  const fb = document.getElementById('sortFeedback');
+  fb.textContent = msg; fb.className = 'feedback ' + (type||'');
+}
+
+function flashWrongSortChip(idx){
+  const poolEl = document.getElementById('sortPool');
+  const chipEl = poolEl.children[idx];
+  if(!chipEl) return;
+  chipEl.classList.remove('wrong'); void chipEl.offsetWidth; chipEl.classList.add('wrong');
+}
+
+// A találatok/hibák a meglévő mulN kategóriákba kerülnek (csak 2-10-es
+// táblákra, mert az 1-es táblának nincs saját statisztika-kategóriája),
+// hogy a szülői nézet és a súlyozott feladatválasztás is lássa őket.
+function logSortAttempt(isCorrect){
+  const t = sortState.table;
+  if(t<2 || t>10) return;
+  const cat = 'mul'+t;
+  if(!state.stats[cat]) return;
+  state.stats[cat].attempts++;
+  if(isCorrect) state.stats[cat].correct++;
+}
+
+function onTapSortChip(idx){
+  const entry = sortState.pool[idx];
+  if(entry.used) return;
+  const expectedVal = sortState.target[sortState.expectedIndex];
+
+  if(entry.value === expectedVal){
+    entry.used = true;
+    sortState.slots[sortState.expectedIndex] = entry.value;
+    logSortAttempt(true);
+    sortState.expectedIndex++;
+    flashSortFeedback('','');
+    renderSort();
+    if(sortState.expectedIndex>=10){ sortWin(); }
+    return;
+  }
+
+  sortState.mistakes++;
+  logSortAttempt(false);
+  beep('bad');
+  const card = document.querySelector('#sortScreen .problem-card');
+  card.classList.remove('card-flash-bad'); void card.offsetWidth; card.classList.add('card-flash-bad');
+  if(sortState.mistakes>=5){
+    flashSortFeedback('Túl sok hiba, kezdjük újra ugyanezzel a táblával! 🔄','retry');
+    renderSort();
+    flashWrongSortChip(idx);
+    const table = sortState.table;
+    setTimeout(()=>{
+      sortState = buildSortPuzzle(table);
+      flashSortFeedback('','');
+      renderSort();
+    }, 1400);
+  } else {
+    flashSortFeedback('Ez most nem a következő! Keresd a legkisebb megmaradt számot. 💪','retry');
+    renderSort();
+    flashWrongSortChip(idx);
+  }
+}
+
+function sortWin(){
+  state.points += SORT_REWARD;
+  state.sortsSolved = (state.sortsSolved||0) + 1;
+  rolloverDaily();
+  state.daily.correctToday++;
+  state.dailyHistory[state.daily.date] = state.daily.correctToday;
+  pruneDailyHistory();
+  let dailyGoalJustMet = false;
+  if(state.daily.correctToday >= DAILY_GOAL && !state.daily.goalMetToday){
+    state.daily.goalMetToday = true;
+    state.daily.streak++;
+    dailyGoalJustMet = true;
+  }
+  flashSortFeedback('Szuper, sikerült sorba rakni mindent! 🎉','good');
+  floatPoints('+'+SORT_REWARD);
+  confetti();
+  beep('good');
+  const newBadges = checkBadges();
+  save();
+  setTimeout(()=>{
+    if(newBadges.length){ afterBadgeClose = ()=>{}; showBadge(newBadges[0]); }
+    else if(dailyGoalJustMet){ showDailyGoalModal(()=>{}); }
   }, 700);
 }
 
@@ -1495,7 +1705,9 @@ function closeBadge(){
   if(cb) cb();
 }
 
-function showDailyGoalModal(){
+let afterDailyModalClose = null;
+function showDailyGoalModal(cb){
+  afterDailyModalClose = cb || null;
   document.getElementById('dailyStreakText').textContent = state.daily.streak + ' napos sorozat!';
   document.getElementById('dailyModal').classList.add('show');
   confetti(true);
@@ -1503,7 +1715,8 @@ function showDailyGoalModal(){
 }
 function closeDailyModal(){
   document.getElementById('dailyModal').classList.remove('show');
-  nextProblem();
+  const cb = afterDailyModalClose; afterDailyModalClose = null;
+  if(cb) cb(); else nextProblem();
 }
 
 /* ---------------- Új játék (nullázás) ---------------- */
@@ -1534,6 +1747,7 @@ function renderHome(){
   document.getElementById('tableSelMul').value = state.tablePref.mul;
   document.getElementById('tableSelDiv').value = state.tablePref.div;
   document.getElementById('puzzleDifficultySel').value = state.puzzlePref.difficulty;
+  document.getElementById('sortTableSel').value = state.sortPref.table;
   document.getElementById('dailyStreakNum').textContent = state.daily.streak;
   document.getElementById('dailyTodayNum').textContent = Math.min(state.daily.correctToday, DAILY_GOAL);
   // folyamatjelző a következő pont-jelvényig
