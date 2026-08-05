@@ -38,6 +38,8 @@
     --teal-dark:#1f9a90;
     --cat:#8bc34a;
     --cat-dark:#6b9c34;
+    --train:#e08a3e;
+    --train-dark:#c26f28;
     --shadow:0 8px 0 rgba(0,0,0,.12);
     --shadow-soft:0 10px 24px rgba(74,52,20,.14);
   }
@@ -166,6 +168,8 @@
   .op-puzzle .emo{font-size:32px;}
   .op-sort{background:var(--cat);}
   .op-sort:active{background:var(--cat-dark);}
+  .op-train{background:var(--train);}
+  .op-train:active{background:var(--train-dark);}
 
   .op-wrap{display:flex;flex-direction:column;gap:6px;}
   .op-wrap.full{grid-column:1 / -1;}
@@ -240,6 +244,29 @@
     display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .08s ease;}
   .sort-chip.used{visibility:hidden;}
   .sort-chip.wrong{animation:shake .4s ease;}
+
+  /* ---------- VONATOS SZORZÓTÁBLA ---------- */
+  #trainSelectScreen{display:none;}
+  #trainScreen{display:none;}
+  .train-table-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:16px;}
+  .train-table-btn{border:none;border-radius:20px;padding:18px 8px;background:#fff;border:3px solid #fff;
+    box-shadow:var(--shadow-soft);font-family:inherit;font-weight:700;font-size:20px;color:var(--ink);cursor:pointer;}
+  .train-table-btn:active{transform:translateY(3px);background:var(--cream);}
+  .heart-row{display:flex;gap:4px;font-size:19px;}
+  .heart-row .heart{opacity:1;transition:opacity .2s ease;}
+  .heart-row .heart.lost{opacity:.22;filter:grayscale(1);}
+  .train-track-wrap{overflow-x:auto;padding:10px 2px 16px;}
+  .train-track{display:flex;align-items:center;gap:6px;width:max-content;margin:0 auto;}
+  .loco{font-size:44px;flex-shrink:0;margin-right:2px;}
+  .wagon{width:58px;height:58px;flex-shrink:0;border-radius:14px;background:#fff;border:3px dashed #d9c9ad;
+    display:flex;align-items:center;justify-content:center;font-weight:700;font-size:18px;color:var(--ink);}
+  .wagon.active{border-style:solid;border-color:var(--train);animation:wagonPulse 1.2s ease-in-out infinite;}
+  .wagon.filled{border-style:solid;border-color:#fff;background:var(--cream);color:var(--green-dark);}
+  @keyframes wagonPulse{0%,100%{box-shadow:0 0 0 3px rgba(224,138,62,.25);}50%{box-shadow:0 0 0 6px rgba(224,138,62,.4);}}
+  .station{font-size:40px;flex-shrink:0;opacity:.35;filter:grayscale(1);transition:opacity .3s ease,filter .3s ease;margin-left:6px;}
+  .train-track.arrived .station{opacity:1;filter:none;}
+  .train-track.arrived{animation:trainArrive .7s ease;}
+  @keyframes trainArrive{0%{transform:translateX(0);}30%{transform:translateX(-14px);}60%{transform:translateX(6px);}100%{transform:translateX(0);}}
 
   /* ---------- PLAY ---------- */
   #play{display:none;}
@@ -418,6 +445,8 @@
           <option value="10">10-es</option>
         </select>
       </div>
+      <button class="op-btn op-train" onclick="goTrainSelect()">
+        <span class="emo">🚂</span><span class="nm">Vonatos szorzótábla</span></button>
     </div>
 
     <div class="section-h"><span style="flex:1;">🏅 Jelvényeid</span><button class="zoo-open-btn" onclick="goZoo()">🦁 Állatkertem</button></div>
@@ -468,6 +497,50 @@
       <div class="sort-slots" id="sortSlots"></div>
       <div class="feedback" id="sortFeedback"></div>
       <div class="sort-pool" id="sortPool"></div>
+    </div>
+  </div>
+
+  <!-- ============ VONATOS SZORZÓTÁBLA — táblaválasztó ============ -->
+  <div id="trainSelectScreen">
+    <div class="top">
+      <button class="back" onclick="goHome()">🏠</button>
+      <div class="spacer"></div>
+    </div>
+    <div class="title-card">
+      <div class="mascot">🚂</div>
+      <h1 style="font-size:24px;">Vonatos szorzótábla</h1>
+      <p class="lvl">Válaszd ki, melyik táblával induljon a vonat!</p>
+    </div>
+    <div class="train-table-grid" id="trainTableGrid"></div>
+  </div>
+
+  <!-- ============ VONATOS SZORZÓTÁBLA — játék ============ -->
+  <div id="trainScreen">
+    <div class="top">
+      <button class="back" onclick="goHome()">🏠</button>
+      <div class="heart-row" id="trainHearts"></div>
+      <div class="spacer"></div>
+      <button class="snd" onclick="goTrainSelect()" title="Új tábla">🔄</button>
+    </div>
+    <div class="problem-card">
+      <div class="guide">🚂</div>
+      <div class="pz-instr" id="trainInstr">Mondd fejből a szorzótáblát, és írd be sorban a vagonokba!</div>
+      <div class="train-track-wrap"><div class="train-track" id="trainTrack"></div></div>
+      <div class="feedback" id="trainFeedback"></div>
+    </div>
+    <div class="pad">
+      <button class="key" onclick="trainPress('1')">1</button>
+      <button class="key" onclick="trainPress('2')">2</button>
+      <button class="key" onclick="trainPress('3')">3</button>
+      <button class="key" onclick="trainPress('4')">4</button>
+      <button class="key" onclick="trainPress('5')">5</button>
+      <button class="key" onclick="trainPress('6')">6</button>
+      <button class="key" onclick="trainPress('7')">7</button>
+      <button class="key" onclick="trainPress('8')">8</button>
+      <button class="key" onclick="trainPress('9')">9</button>
+      <button class="key del" onclick="trainDel()">⌫</button>
+      <button class="key" onclick="trainPress('0')">0</button>
+      <button class="key go" onclick="trainSubmit()">Kész ✓</button>
     </div>
   </div>
 
@@ -624,7 +697,8 @@ const DEFAULT = {points:0, streak:0, bestStreak:0, totalCorrect:0,
   puzzlePref:{difficulty:'easy'},
   sortsSolved:0,
   sortPref:{table:'2'},
-  sortStats: buildDefaultSortStats()};
+  sortStats: buildDefaultSortStats(),
+  trainsSolved:0};
 let state = JSON.parse(JSON.stringify(DEFAULT));
 
 const BADGES = [
@@ -646,6 +720,8 @@ const BADGES = [
   {id:'hedgehog',emoji:'🦔', name:'Kirakó-mester',     desc:'10 Matek-kirakó megoldva',   ok:s=>(s.puzzlesSolved||0)>=10},
   {id:'caterpillar', emoji:'🐛', name:'Sorakozó hernyó', desc:'Első Hernyó-sorakozó megoldva', ok:s=>(s.sortsSolved||0)>=1},
   {id:'butterfly',   emoji:'🦋', name:'Számpillangó',    desc:'10 Hernyó-sorakozó megoldva',   ok:s=>(s.sortsSolved||0)>=10},
+  {id:'conductor',   emoji:'🚂', name:'Mozdonyvezető',   desc:'Első Vonatos szorzótábla teljesítve', ok:s=>(s.trainsSolved||0)>=1},
+  {id:'railmaster',  emoji:'🚉', name:'Vasútmester',     desc:'10 Vonatos szorzótábla teljesítve',   ok:s=>(s.trainsSolved||0)>=10},
 ];
 // pont-alapú jelvények a folyamatjelzőhöz
 const POINT_GOALS = [50,150,300,500,750,1000,2000];
@@ -823,6 +899,7 @@ async function load(){
       state.sortsSolved = typeof saved.sortsSolved==='number' ? saved.sortsSolved : 0;
       state.sortPref = Object.assign({table:'2'}, saved.sortPref||{});
       state.sortStats = mergeSortStats(saved.sortStats);
+      state.trainsSolved = typeof saved.trainsSolved==='number' ? saved.trainsSolved : 0;
     }
   }catch(e){
     // Hálózati hiba esetén az alapállapottal indulunk, a játék így is működik.
@@ -931,6 +1008,8 @@ function goHome(){
   document.getElementById('parentScreen').style.display='none';
   document.getElementById('puzzleScreen').style.display='none';
   document.getElementById('sortScreen').style.display='none';
+  document.getElementById('trainSelectScreen').style.display='none';
+  document.getElementById('trainScreen').style.display='none';
   document.getElementById('home').style.display='block';
   window.scrollTo(0,0);
   renderHome();
@@ -1349,6 +1428,8 @@ function startPuzzle(){
   document.getElementById('parentScreen').style.display='none';
   document.getElementById('play').style.display='none';
   document.getElementById('sortScreen').style.display='none';
+  document.getElementById('trainSelectScreen').style.display='none';
+  document.getElementById('trainScreen').style.display='none';
   document.getElementById('puzzleScreen').style.display='block';
   window.scrollTo(0,0);
   puzzle = generatePuzzle(state.puzzlePref.difficulty);
@@ -1495,6 +1576,8 @@ function startSort(){
   document.getElementById('parentScreen').style.display='none';
   document.getElementById('play').style.display='none';
   document.getElementById('puzzleScreen').style.display='none';
+  document.getElementById('trainSelectScreen').style.display='none';
+  document.getElementById('trainScreen').style.display='none';
   document.getElementById('sortScreen').style.display='block';
   window.scrollTo(0,0);
   const table = parseInt(state.sortPref.table,10) || 2;
@@ -1613,6 +1696,186 @@ function sortWin(){
   }
   flashSortFeedback('Szuper, sikerült sorba rakni mindent! 🎉','good');
   floatPoints('+'+SORT_REWARD);
+  confetti();
+  beep('good');
+  const newBadges = checkBadges();
+  save();
+  setTimeout(()=>{
+    if(newBadges.length){ afterBadgeClose = ()=>{}; showBadge(newBadges[0]); }
+    else if(dailyGoalJustMet){ showDailyGoalModal(()=>{}); }
+  }, 700);
+}
+
+/* ---------------- Vonatos szorzótábla ---------------- */
+// A gyerek FEJBŐL, növekvő sorrendben tölti fel egy szorzótábla (1-10)
+// vagonjait (N×1, N×2, … N×10) — a szorzás maga sosem látszik, csak a
+// vagonok pozíciója. 5 élet van; minden hibás beírás -1 élet, 0 életnél
+// (5. hiba) a tábla ELÖLRŐL indul (életek vissza 5-re, vagonok
+// kiürülnek, ugyanaz a tábla). Csak a teljes, <5 hibával befejezett kör
+// ér pontot. A sorban, fejből történő feltöltés részben az ÖSSZEADÁSOS
+// felépítést (N, N+N, …) is gyakoroltatja, ami eltér a fő gyakorló
+// véletlen-sorrendű, egyetlen szorzatot kérő felidézésétől — ezért (a
+// Hernyó-sorakozónál alkalmazott logikával összhangban) ez a mód SEM
+// írja a state.stats mulN kategóriáit: a pont/jelvény/napi cél
+// rendszerbe illeszkedik, de a súlyozott feladatválasztást vezérlő
+// felidézés-statisztikát nem torzítja.
+const TRAIN_LIVES = 5;
+const TRAIN_REWARD = 40;
+let trainState = null;
+
+function goTrainSelect(){
+  document.getElementById('home').style.display='none';
+  document.getElementById('zooScreen').style.display='none';
+  document.getElementById('parentScreen').style.display='none';
+  document.getElementById('play').style.display='none';
+  document.getElementById('puzzleScreen').style.display='none';
+  document.getElementById('sortScreen').style.display='none';
+  document.getElementById('trainScreen').style.display='none';
+  document.getElementById('trainSelectScreen').style.display='block';
+  window.scrollTo(0,0);
+  renderTrainSelect();
+}
+
+function renderTrainSelect(){
+  const grid = document.getElementById('trainTableGrid');
+  grid.innerHTML = '';
+  for(let t=1;t<=10;t++){
+    const btn = document.createElement('button');
+    btn.className = 'train-table-btn';
+    btn.textContent = TABLE_SUFFIX[t];
+    btn.onclick = ()=>startTrain(t);
+    grid.appendChild(btn);
+  }
+}
+
+function buildTrainPuzzle(table){
+  return {table, wagons:new Array(10).fill(null), wagonIndex:0, lives:TRAIN_LIVES, typed:'', done:false};
+}
+
+function startTrain(table){
+  trainState = buildTrainPuzzle(table);
+  document.getElementById('trainSelectScreen').style.display='none';
+  document.getElementById('trainScreen').style.display='block';
+  window.scrollTo(0,0);
+  flashTrainFeedback('','');
+  renderTrain();
+}
+
+function renderTrain(){
+  document.getElementById('trainInstr').textContent =
+    'Mondd fejből a '+TABLE_SUFFIX[trainState.table]+' szorzótáblát, és írd be sorban a vagonokba!';
+
+  const heartsEl = document.getElementById('trainHearts');
+  heartsEl.innerHTML = '';
+  const lost = TRAIN_LIVES - trainState.lives;
+  for(let i=0;i<TRAIN_LIVES;i++){
+    const h = document.createElement('span');
+    h.className = 'heart' + (i<lost ? ' lost' : '');
+    h.textContent = '❤️';
+    heartsEl.appendChild(h);
+  }
+
+  const track = document.getElementById('trainTrack');
+  track.innerHTML = '';
+  track.classList.remove('arrived');
+  const loco = document.createElement('div');
+  loco.className = 'loco';
+  loco.textContent = '🚂';
+  track.appendChild(loco);
+  let activeEl = null;
+  for(let i=0;i<10;i++){
+    const w = document.createElement('div');
+    const isActive = (i===trainState.wagonIndex && !trainState.done);
+    w.className = 'wagon' + (trainState.wagons[i]!=null ? ' filled' : '') + (isActive ? ' active' : '');
+    w.textContent = trainState.wagons[i]!=null ? trainState.wagons[i] : (isActive && trainState.typed ? trainState.typed : '');
+    track.appendChild(w);
+    if(isActive) activeEl = w;
+  }
+  const station = document.createElement('div');
+  station.className = 'station';
+  station.textContent = '🚉';
+  track.appendChild(station);
+  if(activeEl && activeEl.scrollIntoView) activeEl.scrollIntoView({behavior:'smooth', inline:'center', block:'nearest'});
+}
+
+function flashTrainFeedback(msg, type){
+  const fb = document.getElementById('trainFeedback');
+  fb.textContent = msg; fb.className = 'feedback ' + (type||'');
+}
+
+function trainPress(d){
+  if(trainState.done) return;
+  if(trainState.typed.length>=3) return;
+  if(trainState.typed==='0') trainState.typed='';
+  trainState.typed += d;
+  renderTrain();
+}
+function trainDel(){
+  if(trainState.done) return;
+  trainState.typed = trainState.typed.slice(0,-1);
+  renderTrain();
+}
+
+function trainSubmit(){
+  if(trainState.done) return;
+  if(trainState.typed===''){ flashTrainFeedback('Írj be egy számot! 🔢','retry'); return; }
+  const val = parseInt(trainState.typed,10);
+  const expected = trainState.table * (trainState.wagonIndex+1);
+  if(val===expected){ trainCorrect(val); }
+  else { trainWrong(); }
+}
+
+function trainCorrect(val){
+  trainState.wagons[trainState.wagonIndex] = val;
+  trainState.typed = '';
+  trainState.wagonIndex++;
+  flashTrainFeedback('','');
+  const card = document.querySelector('#trainScreen .problem-card');
+  card.classList.remove('card-flash-good'); void card.offsetWidth; card.classList.add('card-flash-good');
+  beep('good');
+  if(trainState.wagonIndex>=10){ trainWin(); return; }
+  renderTrain();
+}
+
+function trainWrong(){
+  trainState.lives--;
+  trainState.typed = '';
+  beep('bad');
+  const card = document.querySelector('#trainScreen .problem-card');
+  card.classList.remove('card-flash-bad'); void card.offsetWidth; card.classList.add('card-flash-bad');
+  if(trainState.lives<=0){
+    flashTrainFeedback('Kisiklott a vonat, de nem baj — kezdjük újra! 🚂💨','retry');
+    renderTrain();
+    const table = trainState.table;
+    setTimeout(()=>{
+      trainState = buildTrainPuzzle(table);
+      flashTrainFeedback('','');
+      renderTrain();
+    }, 1400);
+  } else {
+    flashTrainFeedback('Nem az a szám — próbáld újra! 💪','retry');
+    renderTrain();
+  }
+}
+
+function trainWin(){
+  trainState.done = true;
+  renderTrain();
+  document.getElementById('trainTrack').classList.add('arrived');
+  state.points += TRAIN_REWARD;
+  state.trainsSolved = (state.trainsSolved||0) + 1;
+  rolloverDaily();
+  state.daily.correctToday++;
+  state.dailyHistory[state.daily.date] = state.daily.correctToday;
+  pruneDailyHistory();
+  let dailyGoalJustMet = false;
+  if(state.daily.correctToday >= DAILY_GOAL && !state.daily.goalMetToday){
+    state.daily.goalMetToday = true;
+    state.daily.streak++;
+    dailyGoalJustMet = true;
+  }
+  flashTrainFeedback('Beért az állomásra! Szuper munka! 🎉','good');
+  floatPoints('+'+TRAIN_REWARD);
   confetti();
   beep('good');
   const newBadges = checkBadges();
@@ -1875,10 +2138,15 @@ function toggleSound(){
 
 /* ---------------- Billentyűzet (gépen) ---------------- */
 document.addEventListener('keydown',e=>{
-  if(document.getElementById('play').style.display==='none') return;
-  if(e.key>='0'&&e.key<='9') press(e.key);
-  else if(e.key==='Backspace'){ e.preventDefault(); del(); }
-  else if(e.key==='Enter'){ e.preventDefault(); check(); }
+  if(document.getElementById('play').style.display!=='none'){
+    if(e.key>='0'&&e.key<='9') press(e.key);
+    else if(e.key==='Backspace'){ e.preventDefault(); del(); }
+    else if(e.key==='Enter'){ e.preventDefault(); check(); }
+  } else if(document.getElementById('trainScreen').style.display!=='none'){
+    if(e.key>='0'&&e.key<='9') trainPress(e.key);
+    else if(e.key==='Backspace'){ e.preventDefault(); trainDel(); }
+    else if(e.key==='Enter'){ e.preventDefault(); trainSubmit(); }
+  }
 });
 
 /* ---------------- Indítás ---------------- */
